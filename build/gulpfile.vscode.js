@@ -342,7 +342,7 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 			}));
 
 
-		// Void - this is important, creates the product.json in .app
+		// Code - this is important, creates the product.json in .app
 		let productJsonContents;
 		const productJsonStream = gulp.src(['product.json'], { base: '.' })
 			.pipe(json({ commit, date: readISODate('out-build'), checksums, version }))
@@ -427,15 +427,15 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 				'resources/win32/vue.ico',
 				'resources/win32/xml.ico',
 				'resources/win32/yaml.ico',
-				'resources/win32/code_70x70.png', // <-- Void icon
-				'resources/win32/code_150x150.png' // <-- Void icon
+				'resources/win32/code_70x70.png', // <-- Code icon
+				'resources/win32/code_150x150.png' // <-- Code icon
 			], { base: '.' }));
 		} else if (platform === 'linux') {
-			all = es.merge(all, gulp.src('resources/linux/code.png', { base: '.' })); // <-- Void icon
+			all = es.merge(all, gulp.src('resources/linux/code.png', { base: '.' })); // <-- Code icon
 		} else if (platform === 'darwin') {
 			const shortcut = gulp.src('resources/darwin/bin/code.sh')
 				.pipe(replace('@@APPNAME@@', product.applicationName))
-				.pipe(rename('bin/code')); // <-- Void icon
+				.pipe(rename('bin/code')); // <-- Code icon
 
 			all = es.merge(all, shortcut);
 		}

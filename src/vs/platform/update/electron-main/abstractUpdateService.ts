@@ -16,10 +16,10 @@ import { IRequestService } from '../../request/common/request.js';
 import { AvailableForDownload, DisablementReason, IUpdateService, State, StateType, UpdateType } from '../common/update.js';
 
 export function createUpdateURL(platform: string, quality: string, productService: IProductService): string {
-	// return `https://voideditor.dev/api/update/${platform}/stable`;
+	// return `https://code.hanzo.ai/api/update/${platform}/stable`;
 	// return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
 	// https://github.com/VSCodium/update-api
-	return `https://updates.voideditor.dev/api/update/${platform}/${quality}/${productService.commit}`;
+	return `https://updates.code.hanzo.ai/api/update/${platform}/${quality}/${productService.commit}`;
 }
 
 export type UpdateNotAvailableClassification = {
@@ -90,7 +90,7 @@ export abstract class AbstractUpdateService implements IUpdateService {
 		this.setState(State.Disabled(DisablementReason.ManuallyDisabled));
 
 
-		// Void - temporarily disabled while we figure out how to do this the right way
+		// Code - temporarily disabled while we figure out how to do this the right way
 
 		// this.setState(State.Idle(this.getUpdateType()));
 

@@ -122,7 +122,7 @@ export class TelemetryService implements ITelemetryService {
 		this._disposables.dispose();
 	}
 
-	// Void commented this out
+	// Code commented this out
 	// private _log(eventName: string, eventLevel: TelemetryLevel, data?: ITelemetryData) {
 	// 	// don't send events when the user is optout
 	// 	if (this._telemetryLevel < eventLevel) {
@@ -151,7 +151,7 @@ export class TelemetryService implements ITelemetryService {
 	}
 
 	publicLogError(errorEventName: string, data?: ITelemetryData) {
-		// Void commented this out
+		// Code commented this out
 		// if (!this._sendErrorTelemetry) {
 		// 	return;
 		// }
@@ -161,7 +161,7 @@ export class TelemetryService implements ITelemetryService {
 	}
 
 	publicLogError2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		// Void commented this out
+		// Code commented this out
 		// this.publicLogError(eventName, data as ITelemetryData);
 	}
 }

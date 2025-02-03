@@ -1,6 +1,6 @@
 # Useful links
 
-The Void team put together this list of links to get up and running with VSCode's sourcecode. We hope it's helpful!
+The Code team put together this list of links to get up and running with VSCode's sourcecode. We hope it's helpful!
 
 ## Contributing
 
@@ -22,7 +22,7 @@ The Void team put together this list of links to get up and running with VSCode'
 
 ## VSCode's Extension API
 
-Void is no longer an extension, so these links are no longer required, but they might be useful if we ever build an extension again.
+Code is no longer an extension, so these links are no longer required, but they might be useful if we ever build an extension again.
 
 - [Files you need in an extension](https://code.visualstudio.com/api/get-started/extension-anatomy).
 

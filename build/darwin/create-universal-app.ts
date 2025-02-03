@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Void explanation - product-build-darwin-universal.yml runs this (create-universal-app.ts), then sign.ts
+// Code explanation - product-build-darwin-universal.yml runs this (create-universal-app.ts), then sign.ts
 
 import * as path from 'path';
 import * as fs from 'fs';

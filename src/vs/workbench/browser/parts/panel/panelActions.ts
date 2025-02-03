@@ -342,7 +342,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'workbench.action.closeAuxiliaryBar',
-			title: localize2('closeSecondarySideBar', 'Hide Void Side Bar'),
+			title: localize2('closeSecondarySideBar', 'Hide Code Side Bar'),
 			category: Categories.View,
 			icon: closeIcon,
 			menu: [{
@@ -415,7 +415,7 @@ class MoveViewsBetweenPanelsAction extends Action2 {
 	}
 }
 
-// --- Move Panel Views To Void Side Bar
+// --- Move Panel Views To Code Side Bar
 
 // these are just for the command pallette
 
@@ -424,7 +424,7 @@ class MovePanelToSidePanelAction extends MoveViewsBetweenPanelsAction {
 	constructor() {
 		super(ViewContainerLocation.Panel, ViewContainerLocation.AuxiliaryBar, {
 			id: MovePanelToSidePanelAction.ID,
-			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Void Side Bar"),
+			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Code Side Bar"),
 			category: Categories.View,
 			f1: false
 		});
@@ -436,7 +436,7 @@ export class MovePanelToSecondarySideBarAction extends MoveViewsBetweenPanelsAct
 	constructor() {
 		super(ViewContainerLocation.Panel, ViewContainerLocation.AuxiliaryBar, {
 			id: MovePanelToSecondarySideBarAction.ID,
-			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Void Side Bar"),
+			title: localize2('movePanelToSecondarySideBar', "Move Panel Views To Code Side Bar"),
 			category: Categories.View,
 			f1: true
 		});
@@ -454,7 +454,7 @@ class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSidePanelToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', "Move Side Bar Views To Panel"), // Void - this seemed to have a typo before
+			title: localize2('moveSidePanelToPanel', "Move Side Bar Views To Panel"), // Code - this seemed to have a typo before
 			category: Categories.View,
 			f1: false
 		});
@@ -467,7 +467,7 @@ export class MoveSecondarySideBarToPanelAction extends MoveViewsBetweenPanelsAct
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSecondarySideBarToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', "Move Void Side Bar Views To Panel"),
+			title: localize2('moveSidePanelToPanel', "Move Code Side Bar Views To Panel"),
 			category: Categories.View,
 			f1: true
 		});

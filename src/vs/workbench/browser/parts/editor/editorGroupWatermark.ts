@@ -23,8 +23,8 @@ import { IWindowOpenable } from '../../../../platform/window/common/window.js';
 import { ILabelService, Verbosity } from '../../../../platform/label/common/label.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
 import { IHostService } from '../../../services/host/browser/host.js';
-import { VOID_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/voidSettingsPane.js';
-import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
+import { CODE_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/codeSettingsPane.js';
+import { CODE_CTRL_K_ACTION_ID, CODE_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
 // import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 
 registerColor('editorWatermark.foreground', { dark: transparent(editorForeground, 0.6), light: transparent(editorForeground, 0.68), hcDark: editorForeground, hcLight: editorForeground }, localize('editorLineHighlight', 'Foreground color for the labels in the editor watermark.'));
@@ -49,7 +49,7 @@ registerColor('editorWatermark.foreground', { dark: transparent(editorForeground
 // const toggleFullscreen: WatermarkEntry = { text: localize({ key: 'watermark.toggleFullscreen', comment: ['toggle is a verb here'] }, "Toggle Full Screen"), id: 'workbench.action.toggleFullScreen' };
 // const showSettings: WatermarkEntry = { text: localize('watermark.showSettings', "Show Settings"), id: 'workbench.action.openSettings' };
 
-// // shown when Void is emtpty
+// // shown when Code is emtpty
 // const noFolderEntries = [
 // 	// showCommands,
 // 	openFileNonMacOnly,
@@ -148,7 +148,7 @@ export class EditorGroupWatermark extends Disposable {
 	private render(): void {
 
 		this.clear();
-		const voidIconBox = append(this.shortcuts, $('.watermark-box'));
+		const codeIconBox = append(this.shortcuts, $('.watermark-box'));
 		const recentsBox = append(this.shortcuts, $('div'));
 		recentsBox.style.display = 'flex'
 		recentsBox.style.flex = 'row'
@@ -161,19 +161,19 @@ export class EditorGroupWatermark extends Disposable {
 			const recentlyOpened = await this.workspacesService.getRecentlyOpened()
 				.catch(() => ({ files: [], workspaces: [] })).then(w => w.workspaces);
 
-			clearNode(voidIconBox);
+			clearNode(codeIconBox);
 			clearNode(recentsBox);
 
 			this.currentDisposables.forEach(label => label.dispose());
 			this.currentDisposables.clear();
 
 
-			// Void - if the workbench is empty, show open
+			// Code - if the workbench is empty, show open
 			if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 
 				// Open a folder
 				const openFolderButton = h('button')
-				openFolderButton.root.classList.add('void-watermark-button')
+				openFolderButton.root.classList.add('code-watermark-button')
 				openFolderButton.root.style.display = 'block'
 				openFolderButton.root.style.marginLeft = 'auto'
 				openFolderButton.root.style.marginRight = 'auto'
@@ -187,13 +187,13 @@ export class EditorGroupWatermark extends Disposable {
 					// 	this.commandService.executeCommand(isMacintosh ? 'workbench.action.files.openFileFolder' : 'workbench.action.files.openFolder');
 					// }
 				}
-				voidIconBox.appendChild(openFolderButton.root);
+				codeIconBox.appendChild(openFolderButton.root);
 
 
 				// Recents
 				if (recentlyOpened.length !== 0) {
 
-					voidIconBox.append(
+					codeIconBox.append(
 						...recentlyOpened.map((w, i) => {
 
 							let fullPath: string;
@@ -212,7 +212,7 @@ export class EditorGroupWatermark extends Disposable {
 							const { name, parentPath } = splitRecentLabel(fullPath);
 
 							const linkSpan = $('span');
-							linkSpan.classList.add('void-link')
+							linkSpan.classList.add('code-link')
 							linkSpan.style.display = 'flex'
 							linkSpan.style.gap = '4px'
 							linkSpan.style.padding = '8px'
@@ -246,9 +246,9 @@ export class EditorGroupWatermark extends Disposable {
 			}
 			else {
 
-				// show them Void keybindings
-				const keys = this.keybindingService.lookupKeybinding(VOID_CTRL_L_ACTION_ID);
-				const dl = append(voidIconBox, $('dl'));
+				// show them Code keybindings
+				const keys = this.keybindingService.lookupKeybinding(CODE_CTRL_L_ACTION_ID);
+				const dl = append(codeIconBox, $('dl'));
 				const dt = append(dl, $('dt'));
 				dt.textContent = 'Chat'
 				const dd = append(dl, $('dd'));
@@ -258,8 +258,8 @@ export class EditorGroupWatermark extends Disposable {
 				this.currentDisposables.add(label);
 
 
-				const keys2 = this.keybindingService.lookupKeybinding(VOID_CTRL_K_ACTION_ID);
-				const dl2 = append(voidIconBox, $('dl'));
+				const keys2 = this.keybindingService.lookupKeybinding(CODE_CTRL_K_ACTION_ID);
+				const dl2 = append(codeIconBox, $('dl'));
 				const dt2 = append(dl2, $('dt'));
 				dt2.textContent = 'Quick Edit'
 				const dd2 = append(dl2, $('dd'));
@@ -270,17 +270,17 @@ export class EditorGroupWatermark extends Disposable {
 
 				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
 				const button3 = append(recentsBox, $('button'));
-				button3.textContent = 'Void Settings'
+				button3.textContent = 'Code Settings'
 				button3.style.display = 'block'
 				button3.style.marginLeft = 'auto'
 				button3.style.marginRight = 'auto'
-				button3.classList.add('void-settings-watermark-button')
+				button3.classList.add('code-settings-watermark-button')
 
 				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
 				if (keys3)
 					label3.set(keys3);
 				button3.onclick = () => {
-					this.commandService.executeCommand(VOID_OPEN_SETTINGS_ACTION_ID)
+					this.commandService.executeCommand(CODE_OPEN_SETTINGS_ACTION_ID)
 				}
 				this.currentDisposables.add(label3);
 

@@ -90,7 +90,7 @@ import './mainThreadProfileContentHandlers.js';
 import './mainThreadAiRelatedInformation.js';
 import './mainThreadAiEmbeddingVector.js';
 
-// Void added this:
+// Code added this:
 import './mainThreadInlineDiff.js';
 
 export class ExtensionPoints implements IWorkbenchContribution {

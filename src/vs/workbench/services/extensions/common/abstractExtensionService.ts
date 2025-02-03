@@ -55,7 +55,7 @@ import { ILifecycleService, WillShutdownJoinerOrder } from '../../lifecycle/comm
 import { IExtensionHostExitInfo, IRemoteAgentService } from '../../remote/common/remoteAgentService.js';
 
 const hasOwnProperty = Object.hasOwnProperty;
-const NO_OP_VOID_PROMISE = Promise.resolve<void>(undefined);
+const NO_OP_CODE_PROMISE = Promise.resolve<void>(undefined);
 
 export abstract class AbstractExtensionService extends Disposable implements IExtensionService {
 
@@ -905,7 +905,7 @@ export abstract class AbstractExtensionService extends Disposable implements IEx
 
 			if (!this._registry.containsActivationEvent(activationEvent)) {
 				// There is no extension that is interested in this activation event
-				return NO_OP_VOID_PROMISE;
+				return NO_OP_CODE_PROMISE;
 			}
 
 			return this._activateByEvent(activationEvent, activationKind);

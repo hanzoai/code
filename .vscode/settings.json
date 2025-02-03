@@ -94,7 +94,7 @@
 		}
 	],
 	"git.ignoreLimitWarning": true,
-	// Removing this for Void:
+	// Removing this for Code:
 	// "git.branchProtection": [
 	// 	"main",
 	// 	"distro",

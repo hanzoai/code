@@ -216,14 +216,14 @@
 		"wellformed-html": {
 			"patterns": [
 				{
-					"include": "#void-tag"
+					"include": "#code-tag"
 				},
 				{
-					"include": "#non-void-tag"
+					"include": "#non-code-tag"
 				}
 			]
 		},
-		"void-tag": {
+		"code-tag": {
 			"name": "meta.tag.structure.$3.void.html",
 			"begin": "(?i)(<)(!)?(area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)(?=\\s|/?>)",
 			"beginCaptures": {
@@ -249,7 +249,7 @@
 				}
 			}
 		},
-		"non-void-tag": {
+		"non-code-tag": {
 			"begin": "(?=<(!)?([^/\\s>]+)(\\s|/?>))",
 			"end": "(</)(\\2)\\s*(>)|(/>)",
 			"endCaptures": {
