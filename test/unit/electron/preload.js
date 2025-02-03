@@ -78,7 +78,7 @@
 			}
 		},
 
-		// Void : {
+		// Code : {
 		// 	/**
 		// 	 * Send a message to the LLM.
 		// 	 * @param {any} data The data to send to the LLM.

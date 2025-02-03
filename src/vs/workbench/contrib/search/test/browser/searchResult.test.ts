@@ -350,8 +350,8 @@ suite('SearchResult', () => {
 	});
 
 	test('replace should remove the file match', function () {
-		const voidPromise = Promise.resolve(null);
-		instantiationService.stub(IReplaceService, 'replace', voidPromise);
+		const codePromise = Promise.resolve(null);
+		instantiationService.stub(IReplaceService, 'replace', codePromise);
 		const testObject = aSearchResult();
 		addToSearchResult(testObject, [
 			aRawMatch('/1',
@@ -359,13 +359,13 @@ suite('SearchResult', () => {
 
 		testObject.replace(testObject.matches()[0]);
 
-		return voidPromise.then(() => assert.ok(testObject.isEmpty()));
+		return codePromise.then(() => assert.ok(testObject.isEmpty()));
 	});
 
 	test('replace should trigger the change event', function () {
 		const target = sinon.spy();
-		const voidPromise = Promise.resolve(null);
-		instantiationService.stub(IReplaceService, 'replace', voidPromise);
+		const codePromise = Promise.resolve(null);
+		instantiationService.stub(IReplaceService, 'replace', codePromise);
 		const testObject = aSearchResult();
 		addToSearchResult(testObject, [
 			aRawMatch('/1',
@@ -376,15 +376,15 @@ suite('SearchResult', () => {
 
 		testObject.replace(objectToRemove);
 
-		return voidPromise.then(() => {
+		return codePromise.then(() => {
 			assert.ok(target.calledOnce);
 			assert.deepStrictEqual([{ elements: [objectToRemove], removed: true }], target.args[0]);
 		});
 	});
 
 	test('replaceAll should remove all file matches', function () {
-		const voidPromise = Promise.resolve(null);
-		instantiationService.stubPromise(IReplaceService, 'replace', voidPromise);
+		const codePromise = Promise.resolve(null);
+		instantiationService.stubPromise(IReplaceService, 'replace', codePromise);
 		const testObject = aSearchResult();
 		addToSearchResult(testObject, [
 			aRawMatch('/1',
@@ -394,7 +394,7 @@ suite('SearchResult', () => {
 
 		testObject.replaceAll(null!);
 
-		return voidPromise.then(() => assert.ok(testObject.isEmpty()));
+		return codePromise.then(() => assert.ok(testObject.isEmpty()));
 	});
 
 	test('batchRemove should trigger the onChange event correctly', function () {

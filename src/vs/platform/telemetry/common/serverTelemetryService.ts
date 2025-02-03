@@ -31,7 +31,7 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 	}
 
 	override publicLog(eventName: string, data?: ITelemetryData) {
-		// Void commented this out
+		// Code commented this out
 		// if (this._injectedTelemetryLevel < TelemetryLevel.USAGE) {
 		// 	return;
 		// }
@@ -39,12 +39,12 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 	}
 
 	override publicLog2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		// Void commented this out
+		// Code commented this out
 		// return this.publicLog(eventName, data as ITelemetryData | undefined);
 	}
 
 	override publicLogError(errorEventName: string, data?: ITelemetryData) {
-		// Void commented this out
+		// Code commented this out
 		// if (this._injectedTelemetryLevel < TelemetryLevel.ERROR) {
 		// 	return Promise.resolve(undefined);
 		// }
@@ -52,7 +52,7 @@ export class ServerTelemetryService extends TelemetryService implements IServerT
 	}
 
 	override publicLogError2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		// Void commented this out
+		// Code commented this out
 		// return this.publicLogError(eventName, data as ITelemetryData | undefined);
 	}
 

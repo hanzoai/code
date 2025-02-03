@@ -1,4 +1,4 @@
-// This file was created by Void
+// This file was created by Code
 // reference extHostCodeInsets.ts
 
 import { Emitter } from '../../../base/common/event.js';

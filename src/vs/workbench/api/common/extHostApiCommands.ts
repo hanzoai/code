@@ -304,11 +304,11 @@ const newCommands: ApiCommand[] = [
 			})(value);
 		})
 	),
-	// // --- Void code lens
+	// // --- Code code lens
 	// new ApiCommand(
-	// 	'vscode.executeVoidCodeLensProvider', '_executeVoidCodeLensProvider', 'Execute Void code lens provider.',
+	// 	'vscode.executeCodeCodeLensProvider', '_executeCodeCodeLensProvider', 'Execute Code code lens provider.',
 	// 	[ApiCommandArgument.Uri, ApiCommandArgument.Number.with('itemResolveCount', 'Number of lenses that should be resolved and returned. Will only return resolved lenses, will impact performance)').optional()],
-	// 	new ApiCommandResult<languages.CodeLens[], vscode.CodeLens[] | undefined>('A promise that resolves to an array of VoidCodeLens-instances.', (value, _args, converter) => {
+	// 	new ApiCommandResult<languages.CodeLens[], vscode.CodeLens[] | undefined>('A promise that resolves to an array of CodeCodeLens-instances.', (value, _args, converter) => {
 	// 		return tryMapWith<languages.CodeLens, vscode.CodeLens>(item => {
 	// 			return new types.CodeLens(typeConverters.Range.to(item.range), item.command && converter.fromInternal(item.command));
 	// 		})(value);
@@ -445,7 +445,7 @@ const newCommands: ApiCommand[] = [
 			).optional(),
 			ApiCommandArgument.String.with('label', '').optional()
 		],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	new ApiCommand(
 		'vscode.openWith', '_workbench.openWith', 'Opens the provided resource with a specific editor.',
@@ -457,7 +457,7 @@ const newCommands: ApiCommand[] = [
 				v => !v ? v : typeof v === 'number' ? [typeConverters.ViewColumn.from(v), undefined] : [typeConverters.ViewColumn.from(v.viewColumn), typeConverters.TextEditorOpenOptions.from(v)],
 			).optional()
 		],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	new ApiCommand(
 		'vscode.diff', '_workbench.diff', 'Opens the provided resources in the diff editor to compare their contents.',
@@ -470,7 +470,7 @@ const newCommands: ApiCommand[] = [
 				v => v && [typeConverters.ViewColumn.from(v.viewColumn), typeConverters.TextEditorOpenOptions.from(v)]
 			).optional(),
 		],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	new ApiCommand(
 		'vscode.changes', '_workbench.changes', 'Opens a list of resources in the changes editor to compare their contents.',
@@ -495,7 +495,7 @@ const newCommands: ApiCommand[] = [
 				},
 				v => v)
 		],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	// --- type hierarchy
 	new ApiCommand(
@@ -517,13 +517,13 @@ const newCommands: ApiCommand[] = [
 	new ApiCommand(
 		'vscode.revealTestInExplorer', '_revealTestInExplorer', 'Reveals a test instance in the explorer',
 		[ApiCommandArgument.TestItem],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	// --- continue edit session
 	new ApiCommand(
 		'vscode.experimental.editSession.continue', '_workbench.editSessions.actions.continueEditSession', 'Continue the current edit session in a different workspace',
 		[ApiCommandArgument.Uri.with('workspaceUri', 'The target workspace to continue the current edit session in')],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	// --- context keys
 	new ApiCommand(
@@ -532,7 +532,7 @@ const newCommands: ApiCommand[] = [
 			ApiCommandArgument.String.with('name', 'The context key name'),
 			new ApiCommandArgument('value', 'The context key value', () => true, v => v),
 		],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	),
 	// --- mapped edits
 	new ApiCommand(
@@ -570,7 +570,7 @@ const newCommands: ApiCommand[] = [
 				position: v.position ? typeConverters.Position.from(v.position) : undefined,
 			};
 		})],
-		ApiCommandResult.Void
+		ApiCommandResult.Code
 	)
 ];
 

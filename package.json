@@ -1,19 +1,19 @@
 {
-  "name": "void-dev",
-  "productName": "Void",
+  "name": "code-dev",
+  "productName": "Code",
   "version": "1.94.0",
   "distro": "this is a commit number if we want to publish on npm",
-  "homepage": "https://voideditor.com",
+  "homepage": "https://code.hanzo.ai",
   "author": {
     "name": "Glass Devtools, Inc.",
-    "email": "andrew@voideditor.com"
+    "email": "andrew@code.hanzo.ai"
   },
   "license": "MIT",
   "main": "./out/main",
   "private": true,
   "scripts": {
-    "buildreact": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js && cd ../../../../../../../",
-    "watchreact": "cd ./src/vs/workbench/contrib/void/browser/react/ && node build.js --watch && cd ../../../../../../../",
+    "buildreact": "cd ./src/vs/workbench/contrib/code/browser/react/ && node build.js && cd ../../../../../../../",
+    "watchreact": "cd ./src/vs/workbench/contrib/code/browser/react/ && node build.js --watch && cd ../../../../../../../",
     "watchreactd": "deemon npm run watchreact",
     "test": "echo Please run any of the test scripts from the scripts folder.",
     "test-browser": "npx playwright install && node test/unit/browser/index.js",

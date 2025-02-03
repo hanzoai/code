@@ -1,4 +1,4 @@
-// Void created this file
+// Code created this file
 // it comes from mainThreadCodeInsets.ts
 
 import { Disposable } from '../../../base/common/lifecycle.js';

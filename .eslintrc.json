@@ -10,11 +10,11 @@
 		"jsdoc",
 		"header",
 		"local"
-		// "react" // Void
+		// "react" // Code
 	],
 	"rules": {
 		"constructor-super": "warn",
-		"curly": "off", // <-- Void
+		"curly": "off", // <-- Code
 		"eqeqeq": "warn",
 		"prefer-const": [
 			"warn",
@@ -52,7 +52,7 @@
 		"no-var": "warn",
 		"jsdoc/no-types": "warn",
 		"semi": "off",
-		"@typescript-eslint/semi": "off", // <-- Void
+		"@typescript-eslint/semi": "off", // <-- Code
 		"@typescript-eslint/member-delimiter-style": "warn",
 		"@typescript-eslint/naming-convention": [
 			"warn",
@@ -104,7 +104,7 @@
 				]
 			}
 		]
-		// Void team commented this out:
+		// Code team commented this out:
 		// "header/header": [
 		// 	2,
 		// 	"block",

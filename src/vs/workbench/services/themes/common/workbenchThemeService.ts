@@ -44,12 +44,12 @@ export enum ThemeSettings {
 }
 
 export enum ThemeSettingDefaults {
-	COLOR_THEME_DARK = 'Default Dark+', // Void changed this. this is the default theme
+	COLOR_THEME_DARK = 'Default Dark+', // Code changed this. this is the default theme
 	COLOR_THEME_LIGHT = 'Default Light Modern',
 	COLOR_THEME_HC_DARK = 'Default High Contrast',
 	COLOR_THEME_HC_LIGHT = 'Default High Contrast Light',
 
-	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Void changed this
+	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Code changed this
 	COLOR_THEME_LIGHT_OLD = 'Default Light+',
 
 	FILE_ICON_THEME = 'vs-seti',
@@ -85,7 +85,7 @@ export enum ThemeSettingDefaults {
 
 
 
-export const COLOR_THEME_DARK_INITIAL_COLORS = { // Void changed this to match dark+
+export const COLOR_THEME_DARK_INITIAL_COLORS = { // Code changed this to match dark+
 	'activityBar.activeBorder': '#ffffff',
 	'activityBar.background': '#333333',
 	'activityBar.border': '#454545',

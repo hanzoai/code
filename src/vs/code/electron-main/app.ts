@@ -124,8 +124,8 @@ import { ExtensionSignatureVerificationService, IExtensionSignatureVerificationS
 import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
 import { IMetricsService } from '../../platform/void/common/metricsService.js';
 import { MetricsMainService } from '../../platform/void/electron-main/metricsMainService.js';
-import { VoidMainUpdateService } from '../../platform/void/electron-main/voidUpdateMainService.js';
-import { IVoidUpdateService } from '../../platform/void/common/voidUpdateService.js';
+import { CodeMainUpdateService } from '../../platform/void/electron-main/codeUpdateMainService.js';
+import { ICodeUpdateService } from '../../platform/void/common/codeUpdateService.js';
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -514,7 +514,7 @@ export class CodeApplication extends Disposable {
 
 		//#endregion
 
-		// //#region Void IPC
+		// //#region Code IPC
 		// validatedIpcMain.handle('vscode:sendLLMMessage', async (event, data) => {
 		// 	try {
 		// 		await this.sendLLMMessage(data);
@@ -1106,9 +1106,9 @@ export class CodeApplication extends Disposable {
 			services.set(ITelemetryService, NullTelemetryService);
 		}
 
-		// Void main process services (required for services with a channel for comm between browser and electron-main (node))
+		// Code main process services (required for services with a channel for comm between browser and electron-main (node))
 		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
-		services.set(IVoidUpdateService, new SyncDescriptor(VoidMainUpdateService, undefined, false));
+		services.set(ICodeUpdateService, new SyncDescriptor(CodeMainUpdateService, undefined, false));
 
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
@@ -1244,15 +1244,15 @@ export class CodeApplication extends Disposable {
 		mainProcessElectronServer.registerChannel('logger', loggerChannel);
 		sharedProcessClient.then(client => client.registerChannel('logger', loggerChannel));
 
-		// Void - use loggerChannel as reference
+		// Code - use loggerChannel as reference
 		const metricsChannel = ProxyChannel.fromService(accessor.get(IMetricsService), disposables);
-		mainProcessElectronServer.registerChannel('void-channel-metrics', metricsChannel);
+		mainProcessElectronServer.registerChannel('code-channel-metrics', metricsChannel);
 
-		const voidUpdatesChannel = ProxyChannel.fromService(accessor.get(IVoidUpdateService), disposables);
-		mainProcessElectronServer.registerChannel('void-channel-update', voidUpdatesChannel);
+		const codeUpdatesChannel = ProxyChannel.fromService(accessor.get(ICodeUpdateService), disposables);
+		mainProcessElectronServer.registerChannel('code-channel-update', codeUpdatesChannel);
 
 		const llmMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
-		mainProcessElectronServer.registerChannel('void-channel-llmMessageService', llmMessageChannel);
+		mainProcessElectronServer.registerChannel('code-channel-llmMessageService', llmMessageChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

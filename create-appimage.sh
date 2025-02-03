@@ -63,7 +63,7 @@ Exec=void
 Icon=void
 Type=Application
 Categories=Utility;
-Comment=Void Linux Application
+Comment=Code Linux Application
 EOF
 then
     echo "Error creating desktop file"

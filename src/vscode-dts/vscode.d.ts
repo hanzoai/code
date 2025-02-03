@@ -14073,7 +14073,7 @@ declare module 'vscode' {
 	 */
 	export namespace languages {
 
-		/** Void added this: */
+		/** Code added this: */
 		export function addInlineDiff(editor: TextEditor, originalText: string, modifiedRange: Range): void;
 
 		/**
