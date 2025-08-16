@@ -6,19 +6,27 @@
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ILanguageFeaturesService } from '../../../../editor/common/services/languageFeatures.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { ITextModel } from '../../../../editor/common/model.js';
+import { EndOfLinePreference, ITextModel } from '../../../../editor/common/model.js';
 import { Position } from '../../../../editor/common/core/position.js';
-import { InlineCompletion, InlineCompletionContext, LocationLink } from '../../../../editor/common/languages.js';
-import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { InlineCompletion, } from '../../../../editor/common/languages.js';
 import { Range } from '../../../../editor/common/core/range.js';
-import { ILLMMessageService } from '../../../../platform/void/common/llmMessageService.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { isCodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { EditorResourceAccessor } from '../../../common/editor.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
-import { extractCodeFromRegular } from './helpers/extractCodeFromResult.js';
-import { isWindows } from '../../../../base/common/platform.js';
+import { extractCodeFromRegular } from '../common/helpers/extractCodeFromResult.js';
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { ILLMMessageService } from '../common/sendLLMMessageService.js';
+import { isWindows } from '../../../../base/common/platform.js';
+import { IVoidSettingsService } from '../common/voidSettingsService.js';
+import { FeatureName } from '../common/voidSettingsTypes.js';
+import { IConvertToLLMMessageService } from './convertToLLMMessageService.js';
+// import { IContextGatheringService } from './contextGatheringService.js';
+
+
+
+const allLinebreakSymbols = ['\r\n', '\n']
+const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
 
 // The extension this was called from is here - https://github.com/hanzoai/code/blob/autocomplete/extensions/void/src/extension/extension.ts
 
@@ -155,6 +163,7 @@ type Autocompletion = {
 	llmPromise: Promise<string> | undefined,
 	insertText: string,
 	requestId: string | null,
+	_newlineCount: number,
 }
 
 const DEBOUNCE_TIME = 500
@@ -163,13 +172,16 @@ const MAX_CACHE_SIZE = 20
 const MAX_PENDING_REQUESTS = 2
 
 // postprocesses the result
-const joinSpaces = (result: string) => {
+const processStartAndEndSpaces = (result: string) => {
 
 	// trim all whitespace except for a single leading/trailing space
 	// return result.trim()
 
+	[result,] = extractCodeFromRegular({ text: result, recentlyAddedTextLen: result.length })
+
 	const hasLeadingSpace = result.startsWith(' ');
 	const hasTrailingSpace = result.endsWith(' ');
+
 	return (hasLeadingSpace ? ' ' : '')
 		+ result.trim()
 		+ (hasTrailingSpace ? ' ' : '');
@@ -196,22 +208,26 @@ const removeLeftTabsAndTrimEnds = (s: string): string => {
 
 const removeAllWhitespace = (str: string): string => str.replace(/\s+/g, '');
 
-function isSubsequence({ of, subsequence }: { of: string, subsequence: string }): boolean {
-	if (subsequence.length === 0) return true;
-	if (of.length === 0) return false;
+
+
+function getIsSubsequence({ of, subsequence }: { of: string, subsequence: string }): [boolean, string] {
+	if (subsequence.length === 0) return [true, ''];
+	if (of.length === 0) return [false, ''];
 
 	let subsequenceIndex = 0;
+	let lastMatchChar = '';
 
 	for (let i = 0; i < of.length; i++) {
 		if (of[i] === subsequence[subsequenceIndex]) {
+			lastMatchChar = of[i];
 			subsequenceIndex++;
 		}
 		if (subsequenceIndex === subsequence.length) {
-			return true;
+			return [true, lastMatchChar];
 		}
 	}
 
-	return false;
+	return [false, lastMatchChar];
 }
 
 
@@ -249,7 +265,6 @@ function getStringUpToUnbalancedClosingParenthesis(s: string, prefix: string): s
 	}
 	return s;
 }
-
 
 
 // further trim the autocompletion
@@ -357,15 +372,24 @@ const toInlineCompletions = ({ autocompletionMatchup, autocompletion, prefixAndS
 
 	// if we redid the suffix, replace the suffix
 	if (autocompletion.type === 'single-line-redo-suffix') {
-		if (isSubsequence({ // check that the old text contains the same brackets + symbols as the new text
-			subsequence: removeAllWhitespace(prefixAndSuffix.suffixToTheRightOfCursor), // old suffix
-			of: removeAllWhitespace(autocompletion.insertText), // new suffix (note that this should not be `trimmedInsertText`)
-		})) {
+
+		const oldSuffix = prefixAndSuffix.suffixToTheRightOfCursor
+		const newSuffix = autocompletion.insertText
+
+		const [isSubsequence, lastMatchingChar] = getIsSubsequence({ // check that the old text contains the same brackets + symbols as the new text
+			subsequence: removeAllWhitespace(oldSuffix), // old suffix
+			of: removeAllWhitespace(newSuffix), // new suffix
+		})
+		if (isSubsequence) {
 			rangeToReplace = new Range(position.lineNumber, position.column, position.lineNumber, Number.MAX_SAFE_INTEGER)
 		}
 		else {
-			// TODO redo the autocompletion
-			trimmedInsertText = '' // for now set the mismatched text to ''
+
+			const lastMatchupIdx = trimmedInsertText.lastIndexOf(lastMatchingChar)
+			trimmedInsertText = trimmedInsertText.slice(0, lastMatchupIdx + 1)
+			const numCharsToReplace = oldSuffix.lastIndexOf(lastMatchingChar) + 1
+			rangeToReplace = new Range(position.lineNumber, position.column, position.lineNumber, position.column + numCharsToReplace)
+			// console.log('show____', trimmedInsertText, rangeToReplace)
 		}
 	}
 
@@ -398,13 +422,10 @@ const toInlineCompletions = ({ autocompletionMatchup, autocompletion, prefixAndS
 // }
 
 
-const allLinebreakSymbols = ['\r\n', '\n']
-const _ln = isWindows ? allLinebreakSymbols[0] : allLinebreakSymbols[1]
-
 type PrefixAndSuffixInfo = { prefix: string, suffix: string, prefixLines: string[], suffixLines: string[], prefixToTheLeftOfCursor: string, suffixToTheRightOfCursor: string }
 const getPrefixAndSuffixInfo = (model: ITextModel, position: Position): PrefixAndSuffixInfo => {
 
-	const fullText = model.getValue();
+	const fullText = model.getValue(EndOfLinePreference.LF);
 
 	const cursorOffset = model.getOffsetAt(position)
 	const prefix = fullText.substring(0, cursorOffset)
@@ -504,12 +525,7 @@ const getAutocompletionMatchup = ({ prefix, autocompletion }: { prefix: string, 
 
 }
 
-// const x = []
-// const
-// c[[]]
-// asd[[]] =
-// const [{{}}]
-//
+
 type CompletionOptions = {
 	predictionType: AutocompletionPredictionType,
 	shouldGenerate: boolean,
@@ -519,7 +535,13 @@ type CompletionOptions = {
 }
 const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantContext: string, justAcceptedAutocompletion: boolean): CompletionOptions => {
 
-	const { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines } = prefixAndSuffix
+	let { prefix, suffix, prefixToTheLeftOfCursor, suffixToTheRightOfCursor, suffixLines, prefixLines } = prefixAndSuffix
+
+	// trim prefix and suffix to not be very large
+	suffixLines = suffix.split(_ln).slice(0, 25)
+	prefixLines = prefix.split(_ln).slice(-25)
+	prefix = prefixLines.join(_ln)
+	suffix = suffixLines.join(_ln)
 
 	let completionOptions: CompletionOptions
 
@@ -552,7 +574,7 @@ const getCompletionOptions = (prefixAndSuffix: PrefixAndSuffixInfo, relevantCont
 			stopTokens: allLinebreakSymbols
 		}
 	}
-	// if suffix is 3 or less characters, attempt to complete the line ignorning it
+	// if suffix is 3 or fewer characters, attempt to complete the line ignorning it
 	else if (removeAllWhitespace(suffixToTheRightOfCursor).length <= 3) {
 		const suffixLinesIgnoringThisLine = suffixLines.slice(1)
 		const suffixStringIgnoringThisLine = suffixLinesIgnoringThisLine.length === 0 ? '' : _ln + suffixLinesIgnoringThisLine.join(_ln)
@@ -611,15 +633,14 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 	async _provideInlineCompletionItems(
 		model: ITextModel,
 		position: Position,
-		context: InlineCompletionContext,
-		token: CancellationToken,
 	): Promise<InlineCompletion[]> {
 
-		console.log('START_0')
+		const isEnabled = this._settingsService.state.globalSettings.enableAutocomplete
+		if (!isEnabled) return []
 
 		const testMode = false
 
-		const docUriStr = model.uri.toString();
+		const docUriStr = model.uri.fsPath;
 
 		const prefixAndSuffix = getPrefixAndSuffixInfo(model, position)
 		const { prefix, suffix } = prefixAndSuffix
@@ -733,12 +754,11 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 
 		// gather relevant context from the code around the user's selection and definitions
-		const relevantContext = await this._gatherRelevantContextForPosition(
-			model,
-			position,
-			3, //recursion depth
-			1 // number of lines to view in each recursion
-		);
+		// const relevantSnippetsList = await this._contextGatheringService.readCachedSnippets(model, position, 3);
+		// const relevantSnippetsList = this._contextGatheringService.getCachedSnippets();
+		// const relevantSnippets = relevantSnippetsList.map((text) => `${text}`).join('\n-------------------------------\n')
+		// console.log('@@---------------------\n' + relevantSnippets)
+		const relevantContext = ''
 
 		const { shouldGenerate, predictionType, llmPrefix, llmSuffix, stopTokens } = getCompletionOptions(prefixAndSuffix, relevantContext, justAcceptedAutocompletion)
 
@@ -749,8 +769,6 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 		}
 
 
-
-		// console.log('B')
 
 		// create a new autocompletion and add it to cache
 		const newAutocompletion: Autocompletion = {
@@ -766,44 +784,61 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 			llmPromise: undefined,
 			insertText: '',
 			requestId: null,
+			_newlineCount: 0,
 		}
 
-		console.log('BB')
-		console.log(predictionType)
+		console.log('starting autocomplete...', predictionType)
+
+		const featureName: FeatureName = 'Autocomplete'
+		const overridesOfModel = this._settingsService.state.overridesOfModel
+		const modelSelection = this._settingsService.state.modelSelectionOfFeature[featureName]
+		const modelSelectionOptions = modelSelection ? this._settingsService.state.optionsOfModelSelection[featureName][modelSelection.providerName]?.[modelSelection.modelName] : undefined
 
 		// set parameters of `newAutocompletion` appropriately
 		newAutocompletion.llmPromise = new Promise((resolve, reject) => {
 
 			const requestId = this._llmMessageService.sendLLMMessage({
-				type: 'ollamaFIM',
-				messages: {
-					prefix: llmPrefix,
-					suffix: llmSuffix,
-					stopTokens: stopTokens,
-				},
+				messagesType: 'FIMMessage',
+				messages: this._convertToLLMMessageService.prepareFIMMessage({
+					messages: {
+						prefix: llmPrefix,
+						suffix: llmSuffix,
+						stopTokens: stopTokens,
+					}
+				}),
+				modelSelection,
+				modelSelectionOptions,
+				overridesOfModel,
 				logging: { loggingName: 'Autocomplete' },
-				onText: async ({ fullText }) => {
+				onText: () => { }, // unused in FIMMessage
+				// onText: async ({ fullText, newText }) => {
 
-					newAutocompletion.insertText = fullText
+				// 	newAutocompletion.insertText = fullText
 
-					// if generation doesn't match the prefix for the first few tokens generated, reject it
-					// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
-					// reject('LLM response did not match user\'s text.')
-					// }
-				},
+				// 	// count newlines in newText
+				// 	const numNewlines = newText.match(/\n|\r\n/g)?.length || 0
+				// 	newAutocompletion._newlineCount += numNewlines
+
+				// 	// if too many newlines, resolve up to last newline
+				// 	if (newAutocompletion._newlineCount > 10) {
+				// 		const lastNewlinePos = fullText.lastIndexOf('\n')
+				// 		newAutocompletion.insertText = fullText.substring(0, lastNewlinePos)
+				// 		resolve(newAutocompletion.insertText)
+				// 		return
+				// 	}
+
+				// 	// if (!getAutocompletionMatchup({ prefix: this._lastPrefix, autocompletion: newAutocompletion })) {
+				// 	// 	reject('LLM response did not match user\'s text.')
+				// 	// }
+				// },
 				onFinalMessage: ({ fullText }) => {
 
-					console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
+					// console.log('____res: ', JSON.stringify(newAutocompletion.insertText))
 
-					// newAutocompletion.prefix = prefix
-					// newAutocompletion.suffix = suffix
-					// newAutocompletion.startTime = Date.now()
 					newAutocompletion.endTime = Date.now()
-					// newAutocompletion.abortRef = { current: () => { } }
 					newAutocompletion.status = 'finished'
-					// newAutocompletion.promise = undefined
 					const [text, _] = extractCodeFromRegular({ text: fullText, recentlyAddedTextLen: 0 })
-					newAutocompletion.insertText = joinSpaces(text)
+					newAutocompletion.insertText = processStartAndEndSpaces(text)
 
 					// handle special case for predicting starting on the next line, add a newline character
 					if (newAutocompletion.type === 'multi-line-start-on-next-line') {
@@ -818,7 +853,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 					newAutocompletion.status = 'error'
 					reject(message)
 				},
-				useProviderFor: 'Autocomplete',
+				onAbort: () => { reject('Aborted autocomplete') },
 			})
 			newAutocompletion.requestId = requestId
 
@@ -853,95 +888,20 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 
 	}
 
-	// helper method to gather ~N lines above and below the user's current line,
-	// and recursively gather lines around any symbol definitions encountered.
-	private async _gatherRelevantContextForPosition(
-		model: ITextModel,
-		position: Position,
-		recursionDepth: number,
-		linesAround: number
-	): Promise<string> {
-		// We'll do a BFS-like approach: for each position or definition, gather lines around it,
-		// then attempt to find the definition of any symbols in that range, up to 'recursionDepth' times.
-
-		// A set of "key" strings to avoid repeating the same location or line chunk
-		const visitedRanges = new Set<string>();
-		const collectedSnippets: string[] = [];
-
-		// A queue of tasks, each being a tuple of: (model, position, depth)
-		const tasks: Array<{ model: ITextModel, position: Position, depth: number }> = [];
-		tasks.push({ model, position, depth: recursionDepth });
-
-		const getSnippetAroundLine = (model: ITextModel, lineNumber: number, linesAround: number): string => {
-			const startLine = Math.max(1, lineNumber - linesAround);
-			const endLine = Math.min(model.getLineCount(), lineNumber + linesAround);
-			const lines: string[] = [];
-			for (let i = startLine; i <= endLine; i++) {
-				lines.push(model.getLineContent(i));
-			}
-			return lines.join('\n');
-		};
-
-		while (tasks.length > 0) {
-			const { model: currentModel, position: currentPos, depth } = tasks.shift()!;
-
-			if (depth < 0) {
-				continue;
-			}
-
-			// Gather snippet around the current line
-			const snippet = getSnippetAroundLine(currentModel, currentPos.lineNumber, linesAround);
-			const snippetKey = `${currentModel.uri.toString()}:${currentPos.lineNumber}`;
-			if (!visitedRanges.has(snippetKey)) {
-				visitedRanges.add(snippetKey);
-				collectedSnippets.push(`-- Snippet around line ${currentPos.lineNumber} --\n${snippet}\n`);
-			}
-
-			// Attempt to gather definitions for the symbol at this position
-			// We just pick all definition providers and see if any has a definition
-			const providers = this._langFeatureService.definitionProvider.ordered(currentModel);
-			for (const provider of providers) {
-				try {
-					const definitions = await provider.provideDefinition(currentModel, currentPos, CancellationToken.None);
-					if (!definitions) continue;
-
-					// definitions can be a single LocationLink or an array
-					const defArray: LocationLink[] = Array.isArray(definitions) ? definitions : [definitions];
-					for (const def of defArray) {
-						if (!def.uri) continue;
-						if (typeof def.range === 'undefined') continue;
-						const definitionModel = this._modelService.getModel(def.uri);
-						if (!definitionModel) continue;
-
-						// We'll queue up a new task for that definition range
-						const defPos = new Position(def.range.startLineNumber, def.range.startColumn);
-						const defKey = `${def.uri.toString()}:${defPos.lineNumber}`;
-						if (!visitedRanges.has(defKey)) {
-							tasks.push({ model: definitionModel, position: defPos, depth: depth - 1 });
-						}
-					}
-				} catch (err) {
-					// If a provider fails, ignore
-				}
-			}
-		}
-
-		// Return the joined context
-		return collectedSnippets.join('\n');
-	}
-
-
 	constructor(
 		@ILanguageFeaturesService private _langFeatureService: ILanguageFeaturesService,
 		@ILLMMessageService private readonly _llmMessageService: ILLMMessageService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IModelService private readonly _modelService: IModelService,
+		@IVoidSettingsService private readonly _settingsService: IVoidSettingsService,
+		@IConvertToLLMMessageService private readonly _convertToLLMMessageService: IConvertToLLMMessageService
+		// @IContextGatheringService private readonly _contextGatheringService: IContextGatheringService,
 	) {
 		super()
 
-		this._langFeatureService.inlineCompletionsProvider.register('*', {
+		this._register(this._langFeatureService.inlineCompletionsProvider.register('*', {
 			provideInlineCompletions: async (model, position, context, token) => {
-				const items = await this._provideInlineCompletionItems(model, position, context, token)
+				const items = await this._provideInlineCompletionItems(model, position)
 
 				// console.log('item: ', items?.[0]?.insertText)
 				return { items: items, }
@@ -958,7 +918,7 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				if (!resource) return;
 				const model = this._modelService.getModel(resource)
 				if (!model) return;
-				const docUriStr = resource.toString();
+				const docUriStr = resource.fsPath;
 				if (!this._autocompletionsOfDocument[docUriStr]) return;
 
 				const { prefix, } = getPrefixAndSuffixInfo(model, position)
@@ -966,8 +926,10 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				// go through cached items and remove matching ones
 				// autocompletion.prefix + autocompletion.insertedText ~== insertedText
 				this._autocompletionsOfDocument[docUriStr].items.forEach((autocompletion: Autocompletion) => {
-					// const matchup = getAutocompletionMatchup({ prefix, autocompletion })
+
+					// we can do this more efficiently, I just didn't want to deal with all of the edge cases
 					const matchup = removeAllWhitespace(prefix) === removeAllWhitespace(autocompletion.prefix + autocompletion.insertText)
+
 					if (matchup) {
 						console.log('ACCEPT', autocompletion.id)
 						this._lastCompletionAccept = Date.now()
@@ -976,13 +938,12 @@ export class AutocompleteService extends Disposable implements IAutocompleteServ
 				});
 
 			},
-		})
+		}))
 	}
 
 
 }
 
 registerWorkbenchContribution2(AutocompleteService.ID, AutocompleteService, WorkbenchPhase.BlockRestore);
-
 
 

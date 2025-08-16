@@ -11,7 +11,6 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { StagingSelectionItem, IChatThreadService } from './chatThreadService.js';
 
 import { ICodeEditorService } from '../../../../editor/browser/services/codeEditorService.js';
 import { IRange } from '../../../../editor/common/core/range.js';
@@ -27,6 +26,7 @@ import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { localize2 } from '../../../../nls.js';
+import { IChatThreadService } from './chatThreadService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { ICodeUriStateService } from './codeUriStateService.js';
 
@@ -56,15 +56,15 @@ export const roundRangeToLines = (range: IRange | null | undefined, options: { e
 	return newRange
 }
 
-const getContentInRange = (model: ITextModel, range: IRange | null) => {
-	if (!range)
-		return null
-	const content = model.getValueInRange(range)
-	const trimmedContent = content
-		.replace(/^\s*\n/g, '') // trim pure whitespace lines from start
-		.replace(/\n\s*$/g, '') // trim pure whitespace lines from end
-	return trimmedContent
-}
+// const getContentInRange = (model: ITextModel, range: IRange | null) => {
+// 	if (!range)
+// 		return null
+// 	const content = model.getValueInRange(range)
+// 	const trimmedContent = content
+// 		.replace(/^\s*\n/g, '') // trim pure whitespace lines from start
+// 		.replace(/\n\s*$/g, '') // trim pure whitespace lines from end
+// 	return trimmedContent
+// }
 
 
 
@@ -74,9 +74,10 @@ registerAction2(class extends Action2 {
 		super({ id: CODE_OPEN_SIDEBAR_ACTION_ID, title: localize2('voidOpenSidebar', 'Code: Open Sidebar'), f1: true });
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(ISidebarStateService)
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
+		const viewsService = accessor.get(IViewsService)
+		const chatThreadsService = accessor.get(IChatThreadService)
+		viewsService.openViewContainer(VOID_VIEW_CONTAINER_ID)
+		await chatThreadsService.focusCurrentChat()
 	}
 })
 
@@ -163,6 +164,7 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
+		// Get services
 		const commandService = accessor.get(ICommandService)
 		await commandService.executeCommand(CODE_OPEN_SIDEBAR_ACTION_ID)
 		await commandService.executeCommand(CODE_ADD_SELECTION_TO_SIDEBAR_ACTION_ID)
@@ -170,29 +172,65 @@ registerAction2(class extends Action2 {
 })
 
 
-
-
-
-// New chat menu button
+// New chat keybind + menu button
+const VOID_CMD_SHIFT_L_ACTION_ID = 'void.cmdShiftL'
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
-			id: 'void.newChatAction',
+			id: VOID_CMD_SHIFT_L_ACTION_ID,
 			title: 'New Chat',
+			keybinding: {
+				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyL,
+				weight: KeybindingWeight.VoidExtension,
+			},
 			icon: { id: 'add' },
 			menu: [{ id: MenuId.ViewTitle, group: 'navigation', when: ContextKeyExpr.equals('view', CODE_VIEW_ID), }]
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(ISidebarStateService)
+
 		const metricsService = accessor.get(IMetricsService)
+		const chatThreadsService = accessor.get(IChatThreadService)
+		const editorService = accessor.get(ICodeEditorService)
+		metricsService.capture('Chat Navigation', { type: 'Start New Chat' })
 
-		metricsService.capture('Chat Navigation', { type: 'New Chat' })
+		// get current selections and value to transfer
+		const oldThreadId = chatThreadsService.state.currentThreadId
+		const oldThread = chatThreadsService.state.allThreads[oldThreadId]
 
-		stateService.setState({ isHistoryOpen: false, currentTab: 'chat' })
-		stateService.fireFocusChat()
-		const chatThreadService = accessor.get(IChatThreadService)
-		chatThreadService.openNewThread()
+		const oldUI = await oldThread?.state.mountedInfo?.whenMounted
+
+		const oldSelns = oldThread?.state.stagingSelections
+		const oldVal = oldUI?.textAreaRef?.current?.value
+
+		// open and focus new thread
+		chatThreadsService.openNewThread()
+		await chatThreadsService.focusCurrentChat()
+
+
+		// set new thread values
+		const newThreadId = chatThreadsService.state.currentThreadId
+		const newThread = chatThreadsService.state.allThreads[newThreadId]
+
+		const newUI = await newThread?.state.mountedInfo?.whenMounted
+		chatThreadsService.setCurrentThreadState({ stagingSelections: oldSelns, })
+		if (newUI?.textAreaRef?.current && oldVal) newUI.textAreaRef.current.value = oldVal
+
+
+		// if has selection, add it
+		const editor = editorService.getActiveCodeEditor()
+		const model = editor?.getModel()
+		if (!model) return
+		const selectionRange = roundRangeToLines(editor?.getSelection(), { emptySelectionBehavior: 'null' })
+		if (!selectionRange) return
+		editor?.setSelection({ startLineNumber: selectionRange.startLineNumber, endLineNumber: selectionRange.endLineNumber, startColumn: 1, endColumn: Number.MAX_SAFE_INTEGER })
+		chatThreadsService.addNewStagingSelection({
+			type: 'CodeSelection',
+			uri: model.uri,
+			language: model.getLanguageId(),
+			range: [selectionRange.startLineNumber, selectionRange.endLineNumber],
+			state: { wasAddedAsCurrentFile: false },
+		})
 	}
 })
 
@@ -207,13 +245,21 @@ registerAction2(class extends Action2 {
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
-		const stateService = accessor.get(ISidebarStateService)
+
+		// do not do anything if there are no messages (without this it clears all of the user's selections if the button is pressed)
+		// TODO the history button should be disabled in this case so we can remove this logic
+		const thread = accessor.get(IChatThreadService).getCurrentThread()
+		if (thread.messages.length === 0) {
+			return;
+		}
+
 		const metricsService = accessor.get(IMetricsService)
 
-		metricsService.capture('Chat Navigation', { type: 'History' })
+		const commandService = accessor.get(ICommandService)
 
-		stateService.setState({ isHistoryOpen: !stateService.state.isHistoryOpen, currentTab: 'chat' })
-		stateService.fireBlurChat()
+		metricsService.capture('Chat Navigation', { type: 'History' })
+		commandService.executeCommand(VOID_CMD_SHIFT_L_ACTION_ID)
+
 	}
 })
 
@@ -237,25 +283,25 @@ registerAction2(class extends Action2 {
 
 
 
-export class TabSwitchListener extends Disposable {
+// export class TabSwitchListener extends Disposable {
 
-	constructor(
-		onSwitchTab: () => void,
-		@ICodeEditorService private readonly _editorService: ICodeEditorService,
-	) {
-		super()
+// 	constructor(
+// 		onSwitchTab: () => void,
+// 		@ICodeEditorService private readonly _editorService: ICodeEditorService,
+// 	) {
+// 		super()
 
-		// when editor switches tabs (models)
-		const addTabSwitchListeners = (editor: ICodeEditor) => {
-			this._register(editor.onDidChangeModel(e => {
-				if (e.newModelUrl?.scheme !== 'file') return
-				onSwitchTab()
-			}))
-		}
+// 		// when editor switches tabs (models)
+// 		const addTabSwitchListeners = (editor: ICodeEditor) => {
+// 			this._register(editor.onDidChangeModel(e => {
+// 				if (e.newModelUrl?.scheme !== 'file') return
+// 				onSwitchTab()
+// 			}))
+// 		}
 
-		const initializeEditor = (editor: ICodeEditor) => {
-			addTabSwitchListeners(editor)
-		}
+// 		const initializeEditor = (editor: ICodeEditor) => {
+// 			addTabSwitchListeners(editor)
+// 		}
 
 		// initialize current editors + any new editors
 		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)

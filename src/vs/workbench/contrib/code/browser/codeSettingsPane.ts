@@ -8,7 +8,7 @@ import { EditorInput } from '../../../common/editor/editorInput.js';
 import * as nls from '../../../../nls.js';
 import { EditorExtensions } from '../../../common/editor.js';
 import { EditorPane } from '../../../browser/parts/editor/editorPane.js';
-import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';
+import { IEditorGroup, IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
@@ -25,7 +25,7 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 
 import { mountCodeSettings } from './react/out/code-settings-tsx/index.js'
 import { Codicon } from '../../../../base/common/codicons.js';
-import { IDisposable } from '../../../../base/common/lifecycle.js';
+import { toDisposable } from '../../../../base/common/lifecycle.js';
 
 
 // refer to preferences.contribution.ts keybindings editor
@@ -35,7 +35,7 @@ class CodeSettingsInput extends EditorInput {
 	static readonly ID: string = 'workbench.input.void.settings';
 
 	static readonly RESOURCE = URI.from({ // I think this scheme is invalid, it just shuts up TS
-		scheme: 'void',  // Custom scheme for our editor
+		scheme: 'void',  // Custom scheme for our editor (try Schemas.https)
 		path: 'settings'
 	})
 	readonly resource = CodeSettingsInput.RESOURCE;
@@ -95,7 +95,6 @@ class CodeSettingsPane extends EditorPane {
 			// setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
 			// 	this._scrollbar?.scanDomNode();
 			// }, 1000)
-			disposables?.forEach(d => this._register(d));
 		});
 	}
 
@@ -141,6 +140,8 @@ registerAction2(class extends Action2 {
 
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
+		const editorGroupService = accessor.get(IEditorGroupsService);
+
 		const instantiationService = accessor.get(IInstantiationService);
 
 		// close all instances if found
@@ -149,6 +150,7 @@ registerAction2(class extends Action2 {
 			await editorService.closeEditors(openEditors);
 			return;
 		}
+
 
 		// else open it
 		const input = instantiationService.createInstance(CodeSettingsInput);

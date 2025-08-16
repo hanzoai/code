@@ -10,14 +10,9 @@ import { IColorTheme, IThemeService, IFileIconTheme, IProductIconTheme } from '.
 import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { isBoolean, isString } from '../../../../base/common/types.js';
 import { IconContribution, IconDefinition } from '../../../../platform/theme/common/iconRegistry.js';
-import { ColorScheme } from '../../../../platform/theme/common/theme.js';
+import { ColorScheme, ThemeTypeSelector } from '../../../../platform/theme/common/theme.js';
 
 export const IWorkbenchThemeService = refineServiceDecorator<IThemeService, IWorkbenchThemeService>(IThemeService);
-
-export const VS_LIGHT_THEME = 'vs';
-export const VS_DARK_THEME = 'vs-dark';
-export const VS_HC_THEME = 'hc-black';
-export const VS_HC_LIGHT_THEME = 'hc-light';
 
 export const THEME_SCOPE_OPEN_PAREN = '[';
 export const THEME_SCOPE_CLOSE_PAREN = ']';
@@ -112,9 +107,6 @@ export const COLOR_THEME_DARK_INITIAL_COLORS = { // Code changed this to match d
 	'welcomePage.tileBackground': '#252526'
 };
 
-
-
-
 export const COLOR_THEME_LIGHT_INITIAL_COLORS = {
 	'activityBar.activeBorder': '#005FB8',
 	'activityBar.background': '#f8f8f8',
@@ -179,7 +171,6 @@ export interface IWorkbenchThemeService extends IThemeService {
 	getMarketplaceColorThemes(publisher: string, name: string, version: string): Promise<IWorkbenchColorTheme[]>;
 	onDidColorThemeChange: Event<IWorkbenchColorTheme>;
 
-	hasUpdatedDefaultThemes(): boolean;
 	getPreferredColorScheme(): ColorScheme | undefined;
 
 	setFileIconTheme(iconThemeId: string | undefined | IWorkbenchFileIconTheme, settingsTarget: ThemeSettingTarget): Promise<IWorkbenchFileIconTheme>;
@@ -313,6 +304,6 @@ export interface IThemeExtensionPoint {
 	label?: string;
 	description?: string;
 	path: string;
-	uiTheme?: typeof VS_LIGHT_THEME | typeof VS_DARK_THEME | typeof VS_HC_THEME | typeof VS_HC_LIGHT_THEME;
+	uiTheme?: ThemeTypeSelector;
 	_watch: boolean; // unsupported options to watch location
 }
