@@ -3,7 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { forwardRef, MutableRefObject, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, ForwardRefExoticComponent, MutableRefObject, RefAttributes, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { IInputBoxStyles, InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js';
@@ -16,6 +16,15 @@ import { ITextModel } from '../../../../../../../editor/common/model.js';
 import { asCssVariable } from '../../../../../../../platform/theme/common/colorUtils.js';
 import { inputBackground, inputForeground } from '../../../../../../../platform/theme/common/colorRegistry.js';
 import { useFloating, autoUpdate, offset, flip, shift, size, autoPlacement } from '@floating-ui/react';
+import { URI } from '../../../../../../../base/common/uri.js';
+import { getBasename, getFolderName } from '../sidebar-tsx/SidebarChat.js';
+import { ChevronRight, File, Folder, FolderClosed, LucideProps } from 'lucide-react';
+import { StagingSelectionItem } from '../../../../common/chatThreadServiceTypes.js';
+import { DiffEditorWidget } from '../../../../../../../editor/browser/widget/diffEditor/diffEditorWidget.js';
+import { extractSearchReplaceBlocks, ExtractedSearchReplaceBlock } from '../../../../common/helpers/extractCodeFromResult.js';
+import { IAccessibilitySignalService } from '../../../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
+import { IEditorProgressService } from '../../../../../../../platform/progress/common/progress.js';
+import { detectLanguage } from '../../../../common/helpers/languageHelpers.js';
 
 
 // type guard
@@ -48,22 +57,643 @@ export const WidgetComponent = <CtorParams extends any[], Instance>({ ctor, prop
 	return <div ref={containerRef} className={className === undefined ? `w-full` : className}>{children}</div>
 }
 
+type GenerateNextOptions = (optionText: string) => Promise<Option[]>
+
+type Option = {
+	fullName: string,
+	abbreviatedName: string,
+	iconInMenu: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>, // type for lucide-react components
+} & (
+		| { leafNodeType?: undefined, nextOptions: Option[], generateNextOptions?: undefined, }
+		| { leafNodeType?: undefined, nextOptions?: undefined, generateNextOptions: GenerateNextOptions, }
+		| { leafNodeType: 'File' | 'Folder', uri: URI, nextOptions?: undefined, generateNextOptions?: undefined, }
+	)
+
+
+const isSubsequence = (text: string, pattern: string): boolean => {
+
+	text = text.toLowerCase()
+	pattern = pattern.toLowerCase()
+
+	if (pattern === '') return true;
+	if (text === '') return false;
+	if (pattern.length > text.length) return false;
+
+	const seq: boolean[][] = Array(pattern.length + 1)
+		.fill(null)
+		.map(() => Array(text.length + 1).fill(false));
+
+	for (let j = 0; j <= text.length; j++) {
+		seq[0][j] = true;
+	}
+
+	for (let i = 1; i <= pattern.length; i++) {
+		for (let j = 1; j <= text.length; j++) {
+			if (pattern[i - 1] === text[j - 1]) {
+				seq[i][j] = seq[i - 1][j - 1];
+			} else {
+				seq[i][j] = seq[i][j - 1];
+			}
+		}
+	}
+	return seq[pattern.length][text.length];
+};
+
+
+const scoreSubsequence = (text: string, pattern: string): number => {
+	if (pattern === '') return 0;
+
+	text = text.toLowerCase();
+	pattern = pattern.toLowerCase();
+
+	// We'll use dynamic programming to find the longest consecutive substring
+	const n = text.length;
+	const m = pattern.length;
+
+	// This will track our maximum consecutive match length
+	let maxConsecutive = 0;
+
+	// For each starting position in the text
+	for (let i = 0; i < n; i++) {
+		// Check for matches starting from this position
+		let consecutiveCount = 0;
+
+		// For each character in the pattern
+		for (let j = 0; j < m; j++) {
+			// If we have a match and we're still within text bounds
+			if (i + j < n && text[i + j] === pattern[j]) {
+				consecutiveCount++;
+			} else {
+				// Break on first non-match
+				break;
+			}
+		}
+
+		// Update our maximum
+		maxConsecutive = Math.max(maxConsecutive, consecutiveCount);
+	}
+
+	return maxConsecutive;
+}
+
+
+function getRelativeWorkspacePath(accessor: ReturnType<typeof useAccessor>, uri: URI): string {
+	const workspaceService = accessor.get('IWorkspaceContextService');
+	const workspaceFolders = workspaceService.getWorkspace().folders;
+
+	if (!workspaceFolders.length) {
+		return uri.fsPath; // No workspace folders, return original path
+	}
+
+	// Sort workspace folders by path length (descending) to match the most specific folder first
+	const sortedFolders = [...workspaceFolders].sort((a, b) =>
+		b.uri.fsPath.length - a.uri.fsPath.length
+	);
+
+	// Add trailing slash to paths for exact matching
+	const uriPath = uri.fsPath.endsWith('/') ? uri.fsPath : uri.fsPath + '/';
+
+	// Check if the URI is inside any workspace folder
+	for (const folder of sortedFolders) {
+
+
+		const folderPath = folder.uri.fsPath.endsWith('/') ? folder.uri.fsPath : folder.uri.fsPath + '/';
+		if (uriPath.startsWith(folderPath)) {
+			// Calculate the relative path by removing the workspace folder path
+			let relativePath = uri.fsPath.slice(folder.uri.fsPath.length);
+			// Remove leading slash if present
+			if (relativePath.startsWith('/')) {
+				relativePath = relativePath.slice(1);
+			}
+			// console.log({ folderPath, relativePath, uriPath });
+
+			return relativePath;
+		}
+	}
+
+	// URI is not in any workspace folder, return original path
+	return uri.fsPath;
+}
+
+
+
+const numOptionsToShow = 100
+
+
+
+// TODO make this unique based on other options
+const getAbbreviatedName = (relativePath: string) => {
+	return getBasename(relativePath, 1)
+}
+
+const getOptionsAtPath = async (accessor: ReturnType<typeof useAccessor>, path: string[], optionText: string): Promise<Option[]> => {
+
+	const toolsService = accessor.get('IToolsService')
+
+
+
+	const searchForFilesOrFolders = async (t: string, searchFor: 'files' | 'folders') => {
+		try {
+
+			const searchResults = (await (await toolsService.callTool.search_pathnames_only({
+				query: t,
+				includePattern: null,
+				pageNumber: 1,
+			})).result).uris
+
+			if (searchFor === 'files') {
+				const res: Option[] = searchResults.map(uri => {
+					const relativePath = getRelativeWorkspacePath(accessor, uri)
+					return {
+						leafNodeType: 'File',
+						uri: uri,
+						iconInMenu: File,
+						fullName: relativePath,
+						abbreviatedName: getAbbreviatedName(relativePath),
+					}
+				})
+				return res
+			}
+
+			else if (searchFor === 'folders') {
+				// Extract unique directory paths from the results
+				const directoryMap = new Map<string, URI>();
+
+				for (const uri of searchResults) {
+					if (!uri) continue;
+
+					// Get the full path and extract directories
+					const relativePath = getRelativeWorkspacePath(accessor, uri)
+					const pathParts = relativePath.split('/');
+
+					// Get workspace info
+					const workspaceService = accessor.get('IWorkspaceContextService');
+					const workspaceFolders = workspaceService.getWorkspace().folders;
+
+					// Find the workspace folder containing this URI
+					let workspaceFolderUri: URI | undefined;
+					if (workspaceFolders.length) {
+						// Sort workspace folders by path length (descending) to match the most specific folder first
+						const sortedFolders = [...workspaceFolders].sort((a, b) =>
+							b.uri.fsPath.length - a.uri.fsPath.length
+						);
+
+						// Find the containing workspace folder
+						for (const folder of sortedFolders) {
+							const folderPath = folder.uri.fsPath.endsWith('/') ? folder.uri.fsPath : folder.uri.fsPath + '/';
+							const uriPath = uri.fsPath.endsWith('/') ? uri.fsPath : uri.fsPath + '/';
+
+							if (uriPath.startsWith(folderPath)) {
+								workspaceFolderUri = folder.uri;
+								break;
+							}
+						}
+					}
+
+					if (workspaceFolderUri) {
+						// Add each directory and its parents to the map
+						let currentPath = '';
+						for (let i = 0; i < pathParts.length - 1; i++) {
+							currentPath = i === 0 ? `/${pathParts[i]}` : `${currentPath}/${pathParts[i]}`;
+
+
+							// Create a proper directory URI
+							const directoryUri = URI.joinPath(
+								workspaceFolderUri,
+								currentPath.startsWith('/') ? currentPath.substring(1) : currentPath
+							);
+
+							directoryMap.set(currentPath, directoryUri);
+						}
+					}
+				}
+				// Convert map to array
+				return Array.from(directoryMap.entries()).map(([relativePath, uri]) => ({
+					leafNodeType: 'Folder',
+					uri: uri,
+					iconInMenu: Folder, // Folder
+					fullName: relativePath,
+					abbreviatedName: getAbbreviatedName(relativePath),
+				})) satisfies Option[];
+			}
+		} catch (error) {
+			console.error('Error fetching directories:', error);
+			return [];
+		}
+	};
+
+
+	const allOptions: Option[] = [
+		{
+			fullName: 'files',
+			abbreviatedName: 'files',
+			iconInMenu: File,
+			generateNextOptions: async (t) => (await searchForFilesOrFolders(t, 'files')) || [],
+		},
+		{
+			fullName: 'folders',
+			abbreviatedName: 'folders',
+			iconInMenu: Folder,
+			generateNextOptions: async (t) => (await searchForFilesOrFolders(t, 'folders')) || [],
+		},
+	]
+
+	// follow the path in the optionsTree (until the last path element)
+
+	let nextOptionsAtPath = allOptions
+	let generateNextOptionsAtPath: GenerateNextOptions | undefined = undefined
+
+	for (const pn of path) {
+
+		const selectedOption = nextOptionsAtPath.find(o => o.fullName.toLowerCase() === pn.toLowerCase())
+
+		if (!selectedOption) return [];
+
+		nextOptionsAtPath = selectedOption.nextOptions! // assume nextOptions exists until we hit the very last option (the path will never contain the last possible option)
+		generateNextOptionsAtPath = selectedOption.generateNextOptions
+
+	}
+
+
+	if (generateNextOptionsAtPath) {
+
+		nextOptionsAtPath = await generateNextOptionsAtPath(optionText)
+	}
+	else if (path.length === 0 && optionText.trim().length > 0) { // (special case): directly search for both files and folders if optionsPath is empty and there's a search term
+		const filesResults = await searchForFilesOrFolders(optionText, 'files') || [];
+		const foldersResults = await searchForFilesOrFolders(optionText, 'folders') || [];
+		nextOptionsAtPath = [...foldersResults, ...filesResults,]
+	}
+
+	const optionsAtPath = nextOptionsAtPath
+		.filter(o => isSubsequence(o.fullName, optionText))
+		.sort((a, b) => { // this is a hack but good for now
+			const scoreA = scoreSubsequence(a.fullName, optionText);
+			const scoreB = scoreSubsequence(b.fullName, optionText);
+			return scoreB - scoreA;
+		})
+		.slice(0, numOptionsToShow) // should go last because sorting/filtering should happen on all datapoints
+
+	return optionsAtPath
+
+}
+
+
 
 export type TextAreaFns = { setValue: (v: string) => void, enable: () => void, disable: () => void }
 type InputBox2Props = {
 	initValue?: string | null;
 	placeholder: string;
 	multiline: boolean;
+	enableAtToMention?: boolean;
 	fnsRef?: { current: null | TextAreaFns };
 	className?: string;
 	onChangeText?: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+	onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+	onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
 export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onChangeText }, ref) {
 
 	// mirrors whatever is in ref
+	const accessor = useAccessor()
+
+	const chatThreadService = accessor.get('IChatThreadService')
+	const languageService = accessor.get('ILanguageService')
+
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+	const selectedOptionRef = useRef<HTMLDivElement>(null);
+	const [isMenuOpen, _setIsMenuOpen] = useState(false); // the @ to mention menu
+	const setIsMenuOpen: typeof _setIsMenuOpen = (value) => {
+		if (!enableAtToMention) { return; } // never open menu if not enabled
+		_setIsMenuOpen(value);
+	}
+
+	// logic for @ to mention vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	const [optionPath, setOptionPath] = useState<string[]>([]);
+	const [optionIdx, setOptionIdx] = useState<number>(0);
+	const [options, setOptions] = useState<Option[]>([]);
+	const [optionText, setOptionText] = useState<string>('');
+	const [didLoadInitialOptions, setDidLoadInitialOptions] = useState(false);
+
+	const currentPathRef = useRef<string>(JSON.stringify([]));
+
+	// dont show breadcrums if first page and user hasnt typed anything
+	const isTypingEnabled = true
+	const isBreadcrumbsShowing = optionPath.length === 0 && !optionText ? false : true
+
+	const insertTextAtCursor = (text: string) => {
+		const textarea = textAreaRef.current;
+		if (!textarea) return;
+
+		// Focus the textarea first
+		textarea.focus();
+
+		// delete the @ and set the cursor position
+		// Get cursor position
+		const startPos = textarea.selectionStart;
+		const endPos = textarea.selectionEnd;
+
+		// Get the text before the cursor, excluding the @ symbol that triggered the menu
+		const textBeforeCursor = textarea.value.substring(0, startPos - 1);
+		const textAfterCursor = textarea.value.substring(endPos);
+
+		// Replace the text including the @ symbol with the selected option
+		textarea.value = textBeforeCursor + textAfterCursor;
+
+		// Set cursor position after the inserted text
+		const newCursorPos = textBeforeCursor.length;
+		textarea.setSelectionRange(newCursorPos, newCursorPos);
+
+		// React's onChange relies on a SyntheticEvent system
+		// The best way to ensure it runs is to call callbacks directly
+		if (onChangeText) {
+			onChangeText(textarea.value);
+		}
+		adjustHeight();
+	};
+
+
+	const onSelectOption = async () => {
+
+		if (!options.length) { return; }
+
+		const option = options[optionIdx];
+		const newPath = [...optionPath, option.fullName]
+		const isLastOption = !option.generateNextOptions && !option.nextOptions
+		setDidLoadInitialOptions(false)
+		if (isLastOption) {
+			setIsMenuOpen(false)
+			insertTextAtCursor(option.abbreviatedName)
+
+			let newSelection: StagingSelectionItem
+			if (option.leafNodeType === 'File') newSelection = {
+				type: 'File',
+				uri: option.uri,
+				language: languageService.guessLanguageIdByFilepathOrFirstLine(option.uri) || '',
+				state: { wasAddedAsCurrentFile: false },
+			}
+			else if (option.leafNodeType === 'Folder') newSelection = {
+				type: 'Folder',
+				uri: option.uri,
+				language: undefined,
+				state: undefined,
+			}
+			else throw new Error(`Unexpected leafNodeType ${option.leafNodeType}`)
+
+			chatThreadService.addNewStagingSelection(newSelection)
+		}
+		else {
+
+
+			currentPathRef.current = JSON.stringify(newPath);
+			const newOpts = await getOptionsAtPath(accessor, newPath, '') || []
+			if (currentPathRef.current !== JSON.stringify(newPath)) { return; }
+			setOptionPath(newPath)
+			setOptionText('')
+			setOptionIdx(0)
+			setOptions(newOpts)
+			setDidLoadInitialOptions(true)
+		}
+	}
+
+	const onRemoveOption = async () => {
+		const newPath = [...optionPath.slice(0, optionPath.length - 1)]
+		currentPathRef.current = JSON.stringify(newPath);
+		const newOpts = await getOptionsAtPath(accessor, newPath, '') || []
+		if (currentPathRef.current !== JSON.stringify(newPath)) { return; }
+		setOptionPath(newPath)
+		setOptionText('')
+		setOptionIdx(0)
+		setOptions(newOpts)
+	}
+
+	const onOpenOptionMenu = async () => {
+		const newPath: [] = []
+		currentPathRef.current = JSON.stringify([]);
+		const newOpts = await getOptionsAtPath(accessor, [], '') || []
+		if (currentPathRef.current !== JSON.stringify([])) { return; }
+		setOptionPath(newPath)
+		setOptionText('')
+		setIsMenuOpen(true);
+		setOptionIdx(0);
+		setOptions(newOpts);
+	}
+	const onCloseOptionMenu = () => {
+		setIsMenuOpen(false);
+	}
+
+	const onNavigateUp = (step = 1, periodic = true) => {
+		if (options.length === 0) return;
+		setOptionIdx((prevIdx) => {
+			const newIdx = prevIdx - step;
+			return periodic ? (newIdx + options.length) % options.length : Math.max(0, newIdx);
+		});
+	}
+	const onNavigateDown = (step = 1, periodic = true) => {
+		if (options.length === 0) return;
+		setOptionIdx((prevIdx) => {
+			const newIdx = prevIdx + step;
+			return periodic ? newIdx % options.length : Math.min(options.length - 1, newIdx);
+		});
+	}
+
+	const onNavigateToTop = () => {
+		if (options.length === 0) return;
+		setOptionIdx(0);
+	}
+	const onNavigateToBottom = () => {
+		if (options.length === 0) return;
+		setOptionIdx(options.length - 1);
+	}
+
+	const debounceTimerRef = useRef<number | null>(null);
+
+	useEffect(() => {
+		// Cleanup function to cancel any pending timeouts when unmounting
+		return () => {
+			if (debounceTimerRef.current !== null) {
+				window.clearTimeout(debounceTimerRef.current);
+				debounceTimerRef.current = null;
+			}
+		};
+	}, []);
+
+	// debounced, but immediate if text is empty
+	const onPathTextChange = useCallback((newStr: string) => {
+
+
+		setOptionText(newStr);
+
+		if (debounceTimerRef.current !== null) {
+			window.clearTimeout(debounceTimerRef.current);
+		}
+
+		currentPathRef.current = JSON.stringify(optionPath);
+
+		const fetchOptions = async () => {
+			const newOpts = await getOptionsAtPath(accessor, optionPath, newStr) || [];
+			if (currentPathRef.current !== JSON.stringify(optionPath)) { return; }
+			setOptions(newOpts);
+			setOptionIdx(0);
+			debounceTimerRef.current = null;
+		};
+
+		// If text is empty, run immediately without debouncing
+		if (newStr.trim() === '') {
+			fetchOptions();
+		} else {
+			// Otherwise, set a new timeout to fetch options after a delay
+			debounceTimerRef.current = window.setTimeout(fetchOptions, 300);
+		}
+	}, [optionPath, accessor]);
+
+
+	const onMenuKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+
+		const isCommandKeyPressed = e.altKey || e.ctrlKey || e.metaKey;
+
+		if (e.key === 'ArrowUp') {
+			if (isCommandKeyPressed) {
+				onNavigateToTop()
+			} else {
+				if (e.altKey) {
+					onNavigateUp(10, false);
+				} else {
+					onNavigateUp();
+				}
+			}
+		} else if (e.key === 'ArrowDown') {
+			if (isCommandKeyPressed) {
+				onNavigateToBottom()
+			} else {
+				if (e.altKey) {
+					onNavigateDown(10, false);
+				} else {
+					onNavigateDown();
+				}
+			}
+		} else if (e.key === 'ArrowLeft') {
+			onRemoveOption();
+		} else if (e.key === 'ArrowRight') {
+			onSelectOption();
+		} else if (e.key === 'Enter') {
+			onSelectOption();
+		} else if (e.key === 'Escape') {
+			onCloseOptionMenu()
+		} else if (e.key === 'Backspace') {
+
+			if (!optionText) { // No text remaining
+				if (optionPath.length === 0) {
+					onCloseOptionMenu()
+					return; // don't prevent defaults (backspaces the @ symbol)
+				} else {
+					onRemoveOption();
+				}
+			}
+			else if (isCommandKeyPressed) { // Ctrl+Backspace
+				onPathTextChange('')
+			}
+			else { // Backspace
+				onPathTextChange(optionText.slice(0, -1))
+			}
+		} else if (e.key.length === 1) {
+			if (isCommandKeyPressed) { // Ctrl+letter
+				// do nothing
+			}
+			else { // letter
+				if (isTypingEnabled) {
+					onPathTextChange(optionText + e.key)
+				}
+			}
+		}
+
+		e.preventDefault();
+		e.stopPropagation();
+
+	};
+
+	// scroll the selected optionIdx into view on optionIdx and optionText changes
+	useEffect(() => {
+		if (isMenuOpen && selectedOptionRef.current) {
+			selectedOptionRef.current.scrollIntoView({
+				behavior: 'instant',
+				block: 'nearest',
+				inline: 'nearest',
+			});
+		}
+	}, [optionIdx, isMenuOpen, optionText, selectedOptionRef]);
+
+	const measureRef = useRef<HTMLDivElement>(null);
+	const gapPx = 2
+	const offsetPx = 2
+	const {
+		x,
+		y,
+		strategy,
+		refs,
+		middlewareData,
+		update
+	} = useFloating({
+		open: isMenuOpen,
+		onOpenChange: setIsMenuOpen,
+		placement: 'bottom',
+
+		middleware: [
+			offset({ mainAxis: gapPx, crossAxis: offsetPx }),
+			flip({
+				boundary: document.body,
+				padding: 8
+			}),
+			shift({
+				boundary: document.body,
+				padding: 8,
+			}),
+			size({
+				apply({ elements, rects }) {
+					// Just set width on the floating element and let content handle scrolling
+					Object.assign(elements.floating.style, {
+						width: `${Math.max(
+							rects.reference.width,
+							measureRef.current?.offsetWidth ?? 0
+						)}px`
+					});
+				},
+				padding: 8,
+				// Use viewport as boundary instead of any parent element
+				boundary: document.body,
+			}),
+		],
+		whileElementsMounted: autoUpdate,
+		strategy: 'fixed',
+	});
+	useEffect(() => {
+		if (!isMenuOpen) return;
+
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as Node;
+			const floating = refs.floating.current;
+			const reference = refs.reference.current;
+
+			// Check if reference is an HTML element before using contains
+			const isReferenceHTMLElement = reference && 'contains' in reference;
+
+			if (
+				floating &&
+				(!isReferenceHTMLElement || !reference.contains(target)) &&
+				!floating.contains(target)
+			) {
+				setIsMenuOpen(false);
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [isMenuOpen, refs.floating, refs.reference]);
+	// logic for @ to mention ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
 	const [isEnabled, setEnabled] = useState(true)
 
 	const adjustHeight = useCallback(() => {
@@ -102,17 +732,23 @@ export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 
 
-	return (
+	return <>
 		<textarea
+			autoFocus={false}
 			ref={useCallback((r: HTMLTextAreaElement | null) => {
 				if (fnsRef)
 					fnsRef.current = fns
+
+				refs.setReference(r)
 
 				textAreaRef.current = r
 				if (typeof ref === 'function') ref(r)
 				else if (ref) ref.current = r
 				adjustHeight()
-			}, [fnsRef, fns, setEnabled, adjustHeight, ref])}
+			}, [fnsRef, fns, setEnabled, adjustHeight, ref, refs])}
+
+			onFocus={onFocus}
+			onBlur={onBlur}
 
 			disabled={!isEnabled}
 
@@ -124,7 +760,16 @@ export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 				// inputBorder: asCssVariable(inputBorder),
 			}}
 
-			onChange={useCallback(() => {
+			onInput={useCallback((event: React.FormEvent<HTMLTextAreaElement>) => {
+				const latestChange = (event.nativeEvent as InputEvent).data;
+
+				if (latestChange === '@') {
+					onOpenOptionMenu()
+				}
+
+			}, [onOpenOptionMenu, accessor])}
+
+			onChange={useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
 				const r = textAreaRef.current
 				if (!r) return
 				onChangeText?.(r.value)
@@ -132,18 +777,102 @@ export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 			}, [onChangeText, adjustHeight])}
 
 			onKeyDown={useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+
+				if (isMenuOpen) {
+					onMenuKeyDown(e)
+					return;
+				}
+
+				if (e.key === 'Backspace') { // TODO allow user to undo this.
+					if (!e.currentTarget.value || (e.currentTarget.selectionStart === 0 && e.currentTarget.selectionEnd === 0)) { // if there is no text or cursor is at position 0, remove a selection
+						if (e.metaKey || e.ctrlKey) { // Ctrl+Backspace = remove all
+							chatThreadService.popStagingSelections(Number.MAX_SAFE_INTEGER)
+						} else { // Backspace = pop 1 selection
+							chatThreadService.popStagingSelections(1)
+						}
+						return;
+					}
+				}
 				if (e.key === 'Enter') {
 					// Shift + Enter when multiline = newline
 					const shouldAddNewline = e.shiftKey && multiline
 					if (!shouldAddNewline) e.preventDefault(); // prevent newline from being created
 				}
 				onKeyDown?.(e)
-			}, [onKeyDown, multiline])}
+			}, [onKeyDown, onMenuKeyDown, multiline])}
 
 			rows={1}
 			placeholder={placeholder}
 		/>
-	)
+		{/* <div>{`idx ${optionIdx}`}</div> */}
+		{isMenuOpen && (
+			<div
+				ref={refs.setFloating}
+				className="z-[100] border-void-border-3 bg-void-bg-2-alt border rounded shadow-lg flex flex-col overflow-hidden"
+				style={{
+					position: strategy,
+					top: y ?? 0,
+					left: x ?? 0,
+					width: refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0
+				}}
+				onWheel={(e) => e.stopPropagation()}
+			>
+				{/* Breadcrumbs Header */}
+				{isBreadcrumbsShowing && <div className="px-2 py-1 text-void-fg-1 bg-void-bg-2-alt border-b border-void-border-3 sticky top-0 bg-void-bg-1 z-10 select-none pointer-events-none">
+					{optionText ?
+						<div className="flex items-center">
+							{/* {optionPath.map((path, index) => (
+								<React.Fragment key={index}>
+									<span>{path}</span>
+									<ChevronRight size={12} className="mx-1" />
+								</React.Fragment>
+							))} */}
+							<span>{optionText}</span>
+						</div>
+						: <div className='opacity-50'>Enter text to filter...</div>
+					}
+				</div>}
+
+
+				{/* Options list */}
+				<div className='max-h-[400px] w-full max-w-full overflow-y-auto overflow-x-auto'>
+					<div className="w-max min-w-full flex flex-col gap-0 text-nowrap flex-nowrap">
+						{options.length === 0 ?
+							<div className="text-void-fg-3 px-3 py-0.5">No results found</div>
+							: options.map((o, oIdx) => {
+
+								return (
+									// Option
+									<div
+										ref={oIdx === optionIdx ? selectedOptionRef : null}
+										key={o.fullName}
+										className={`
+											flex items-center gap-2
+											px-3 py-1 cursor-pointer
+											${oIdx === optionIdx ? 'bg-blue-500 text-white/80' : 'bg-void-bg-2-alt text-void-fg-1'}
+										`}
+										onClick={() => { onSelectOption(); }}
+										onMouseMove={() => { setOptionIdx(oIdx) }}
+									>
+										{<o.iconInMenu size={12} />}
+
+										<span>{o.abbreviatedName}</span>
+
+										{o.fullName && o.fullName !== o.abbreviatedName && <span className="opacity-60 text-sm">{o.fullName}</span>}
+
+										{o.nextOptions || o.generateNextOptions ? (
+											<ChevronRight size={12} />
+										) : null}
+
+									</div>
+								)
+							})
+						}
+					</div>
+				</div>
+			</div>
+		)}
+	</>
 
 })
 
@@ -153,6 +882,7 @@ export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
 	inputBoxRef?: { current: InputBox | null };
 	placeholder: string;
+	isPasswordField?: boolean;
 	multiline: boolean;
 }) => {
 
@@ -160,11 +890,11 @@ export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 
 	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
-		ctor={InputBox}
 		className='
 			bg-code-bg-1
 			@@[&_::placeholder]:!code-text-code-fg-3
 		'
+		ctor={InputBox}
 		propsFn={useCallback((container) => [
 			container,
 			contextViewProvider,
@@ -177,6 +907,7 @@ export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 				},
 				placeholder,
 				tooltip: '',
+				type: isPasswordField ? 'password' : undefined,
 				flexibleHeight: multiline,
 				flexibleMaxHeight: 500,
 				flexibleWidth: false,
@@ -199,8 +930,7 @@ export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 				inputBoxRef.current = instance;
 
 			return disposables
-		}, [onChangeText, onCreateInstance, inputBoxRef])
-		}
+		}, [onChangeText, onCreateInstance, inputBoxRef])}
 	/>
 };
 
@@ -211,23 +941,24 @@ export const CodeSwitch = ({
 	value,
 	onChange,
 	size = 'md',
-	label,
 	disabled = false,
+	...props
 }: {
 	value: boolean;
 	onChange: (value: boolean) => void;
-	label?: string;
 	disabled?: boolean;
-	size?: 'xs' | 'sm' | 'sm+' | 'md';
+	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
 }) => {
 	return (
-		<label className="inline-flex items-center cursor-pointer">
+		<label className="inline-flex items-center" {...props}>
 			<div
 				onClick={() => !disabled && onChange(!value)}
 				className={`
+			cursor-pointer
 			relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out
-			${value ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
+			${value ? 'bg-zinc-900 dark:bg-white' : 'bg-white dark:bg-zinc-600'}
 			${disabled ? 'opacity-25' : ''}
+			${size === 'xxs' ? 'h-3 w-5' : ''}
 			${size === 'xs' ? 'h-4 w-7' : ''}
 			${size === 'sm' ? 'h-5 w-9' : ''}
 			${size === 'sm+' ? 'h-5 w-10' : ''}
@@ -236,11 +967,13 @@ export const CodeSwitch = ({
 			>
 				<span
 					className={`
-			  inline-block transform rounded-full bg-white dark:bg-gray-900 shadow transition-transform duration-200 ease-in-out
+			  inline-block transform rounded-full bg-white dark:bg-zinc-900 shadow transition-transform duration-200 ease-in-out
+			  ${size === 'xxs' ? 'h-2 w-2' : ''}
 			  ${size === 'xs' ? 'h-2.5 w-2.5' : ''}
 			  ${size === 'sm' ? 'h-3 w-3' : ''}
 			  ${size === 'sm+' ? 'h-3.5 w-3.5' : ''}
 			  ${size === 'md' ? 'h-4 w-4' : ''}
+			  ${size === 'xxs' ? (value ? 'translate-x-2.5' : 'translate-x-0.5') : ''}
 			  ${size === 'xs' ? (value ? 'translate-x-3.5' : 'translate-x-0.5') : ''}
 			  ${size === 'sm' ? (value ? 'translate-x-5' : 'translate-x-1') : ''}
 			  ${size === 'sm+' ? (value ? 'translate-x-6' : 'translate-x-1') : ''}
@@ -248,14 +981,6 @@ export const CodeSwitch = ({
 			`}
 				/>
 			</div>
-			{label && (
-				<span className={`
-			ml-3 font-medium text-gray-900 dark:text-gray-100
-			${size === 'xs' ? 'text-xs' : 'text-sm'}
-		  `}>
-					{label}
-				</span>
-			)}
 		</label>
 	);
 };
@@ -300,26 +1025,30 @@ export const CodeCheckBox = ({ label, value, onClick, className }: { label: stri
 
 export const CodeCustomSelectBox = <T extends any>({
 	options,
-	selectedOption: selectedOption_,
+	selectedOption,
 	onChangeOption,
 	getOptionDropdownName,
+	getOptionDropdownDetail,
 	getOptionDisplayName,
 	getOptionsEqual,
 	className,
 	arrowTouchesText = true,
 	matchInputWidth = false,
-	gap = 0,
+	gapPx = 0,
+	offsetPx = -6,
 }: {
 	options: T[];
-	selectedOption?: T;
+	selectedOption: T | undefined;
 	onChangeOption: (newValue: T) => void;
 	getOptionDropdownName: (option: T) => string;
+	getOptionDropdownDetail?: (option: T) => string;
 	getOptionDisplayName: (option: T) => string;
 	getOptionsEqual: (a: T, b: T) => boolean;
 	className?: string;
 	arrowTouchesText?: boolean;
 	matchInputWidth?: boolean;
-	gap?: number;
+	gapPx?: number;
+	offsetPx?: number;
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const measureRef = useRef<HTMLDivElement>(null);
@@ -335,10 +1064,10 @@ export const CodeCustomSelectBox = <T extends any>({
 	} = useFloating({
 		open: isOpen,
 		onOpenChange: setIsOpen,
-		placement:'bottom-start',
+		placement: 'bottom-start',
 
 		middleware: [
-			offset(gap),
+			offset({ mainAxis: gapPx, crossAxis: offsetPx }),
 			flip({
 				boundary: document.body,
 				padding: 8
@@ -367,17 +1096,15 @@ export const CodeCustomSelectBox = <T extends any>({
 			}),
 		],
 		whileElementsMounted: autoUpdate,
-		strategy:'fixed',
+		strategy: 'fixed',
 	});
 
-	// if the selected option is null, use the 0th option
+	// if the selected option is null, set the selection to the 0th option
 	useEffect(() => {
-		if (!options[0]) return
-		if (!selectedOption_) {
-			onChangeOption(options[0]);
-		}
-	}, [selectedOption_, options])
-	const selectedOption = !selectedOption_ ? options[0] : selectedOption_
+		if (options.length === 0) return
+		if (selectedOption !== undefined) return
+		onChangeOption(options[0])
+	}, [selectedOption, onChangeOption, options])
 
 	// Handle clicks outside
 	useEffect(() => {
@@ -404,6 +1131,9 @@ export const CodeCustomSelectBox = <T extends any>({
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen, refs.floating, refs.reference]);
 
+	if (selectedOption === undefined)
+		return null
+
 	return (
 		<div className={`inline-block relative ${className}`}>
 			{/* Hidden measurement div */}
@@ -412,12 +1142,21 @@ export const CodeCustomSelectBox = <T extends any>({
 				className="opacity-0 pointer-events-none absolute -left-[999999px] -top-[999999px] flex flex-col"
 				aria-hidden="true"
 			>
-				{options.map((option) => (
-					<div key={getOptionDropdownName(option)} className="flex items-center whitespace-nowrap">
-						<div className="w-4" />
-						<span className="px-2">{getOptionDropdownName(option)}</span>
-					</div>
-				))}
+				{options.map((option) => {
+					const optionName = getOptionDropdownName(option);
+					const optionDetail = getOptionDropdownDetail?.(option) || '';
+
+					return (
+						<div key={optionName + optionDetail} className="flex items-center whitespace-nowrap">
+							<div className="w-4" />
+							<span className="flex justify-between w-full">
+								<span>{optionName}</span>
+								<span>{optionDetail}</span>
+								<span>______</span>
+							</span>
+						</div>
+					)
+				})}
 			</div>
 
 			{/* Select Button */}
@@ -427,7 +1166,7 @@ export const CodeCustomSelectBox = <T extends any>({
 				className="flex items-center h-4 bg-transparent whitespace-nowrap hover:brightness-90 w-full"
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<span className={`max-w-[120px] truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
+				<span className={`truncate ${arrowTouchesText ? 'mr-1' : ''}`}>
 					{getOptionDisplayName(selectedOption)}
 				</span>
 				<svg
@@ -454,48 +1193,56 @@ export const CodeCustomSelectBox = <T extends any>({
 						position: strategy,
 						top: y ?? 0,
 						left: x ?? 0,
-						width: matchInputWidth
+						width: (matchInputWidth
 							? (refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0)
 							: Math.max(
 								(refs.reference.current instanceof HTMLElement ? refs.reference.current.offsetWidth : 0),
 								(measureRef.current instanceof HTMLElement ? measureRef.current.offsetWidth : 0)
-							),
+							))
 					}}
-				>
-					{options.map((option) => {
-						const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
-						const optionName = getOptionDropdownName(option);
+					onWheel={(e) => e.stopPropagation()}
+				><div className='overflow-auto max-h-80'>
 
-						return (
-							<div
-								key={optionName}
-								className={`flex items-center px-2 py-1 cursor-pointer whitespace-nowrap
+						{options.map((option) => {
+							const thisOptionIsSelected = getOptionsEqual(option, selectedOption);
+							const optionName = getOptionDropdownName(option);
+							const optionDetail = getOptionDropdownDetail?.(option) || '';
+
+							return (
+								<div
+									key={optionName}
+									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
 									bg-code-bg-1
 									${thisOptionIsSelected ? 'bg-code-bg-2' : 'hover:bg-code-bg-2'}
 								`}
-								onClick={() => {
-									onChangeOption(option);
-									setIsOpen(false);
-								}}
-							>
-								<div className="w-4 flex justify-center flex-shrink-0">
-									{thisOptionIsSelected && (
-										<svg className="size-3" viewBox="0 0 12 12" fill="none">
-											<path
-												d="M10 3L4.5 8.5L2 6"
-												stroke="currentColor"
-												strokeWidth="1.5"
-												strokeLinecap="round"
-												strokeLinejoin="round"
-											/>
-										</svg>
-									)}
+									onClick={() => {
+										onChangeOption(option);
+										setIsOpen(false);
+									}}
+								>
+									<div className="w-4 flex justify-center flex-shrink-0">
+										{thisOptionIsSelected && (
+											<svg className="size-3" viewBox="0 0 12 12" fill="none">
+												<path
+													d="M10 3L4.5 8.5L2 6"
+													stroke="currentColor"
+													strokeWidth="1.5"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+												/>
+											</svg>
+										)}
+									</div>
+									<span className="flex justify-between items-center w-full gap-x-1">
+										<span>{optionName}</span>
+										<span className='opacity-60'>{optionDetail}</span>
+									</span>
 								</div>
-								<span>{optionName}</span>
-							</div>
-						);
-					})}
+							);
+						})}
+					</div>
+
 				</div>
 			)}
 		</div>
@@ -623,7 +1370,6 @@ export const CodeCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 	// const languageDetectionService = accessor.get('ILanguageDetectionService')
 	const modelService = accessor.get('IModelService')
 
-
 	const id = useId()
 
 	// these are used to pass to the model creation of modelRef
@@ -704,9 +1450,11 @@ export const CodeCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 			}, [instantiationService])}
 
 			onCreateInstance={useCallback((editor: CodeEditorWidget) => {
+				const languageId = languageRef.current ? languageRef.current : 'plaintext'
+
 				const model = modelOfEditorId[id] ?? modelService.createModel(
 					initValueRef.current, {
-					languageId: languageRef.current ? languageRef.current : 'typescript',
+					languageId: languageId,
 					onDidChange: (e) => { return { dispose: () => { } } } // no idea why they'd require this
 				})
 				modelRef.current = model
@@ -743,7 +1491,7 @@ export const CodeCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 
 export const CodeButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
 	return <button disabled={disabled}
-		className='px-3 py-1 bg-black/10 dark:bg-gray-200/10 rounded-sm overflow-hidden'
+		className={`px-3 py-1 bg-black/10 dark:bg-white/10 rounded-sm overflow-hidden whitespace-nowrap flex items-center justify-center ${className || ''}`}
 		onClick={onClick}
 	>{children}</button>
 }
@@ -868,5 +1616,156 @@ export const CodeButton = ({ children, disabled, onClick }: { children: React.Re
 
 // 	return <div ref={containerRef} className="w-full" />;
 // };
+
+
+
+
+const SingleDiffEditor = ({ block, lang }: { block: ExtractedSearchReplaceBlock, lang: string | undefined }) => {
+	const accessor = useAccessor();
+	const modelService = accessor.get('IModelService');
+	const instantiationService = accessor.get('IInstantiationService');
+	const languageService = accessor.get('ILanguageService');
+
+	const languageSelection = useMemo(() => languageService.createById(lang), [lang, languageService]);
+
+	// Create models for original and modified
+	const originalModel = useMemo(() =>
+		modelService.createModel(block.orig, languageSelection),
+		[block.orig, languageSelection, modelService]
+	);
+	const modifiedModel = useMemo(() =>
+		modelService.createModel(block.final, languageSelection),
+		[block.final, languageSelection, modelService]
+	);
+
+	// Clean up models on unmount
+	useEffect(() => {
+		return () => {
+			originalModel.dispose();
+			modifiedModel.dispose();
+		};
+	}, [originalModel, modifiedModel]);
+
+	// Imperatively mount the DiffEditorWidget
+	const divRef = useRef<HTMLDivElement | null>(null);
+	const editorRef = useRef<any>(null);
+
+	useEffect(() => {
+		if (!divRef.current) return;
+		// Create the diff editor instance
+		const editor = instantiationService.createInstance(
+			DiffEditorWidget,
+			divRef.current,
+			{
+				automaticLayout: true,
+				readOnly: true,
+				renderSideBySide: true,
+				minimap: { enabled: false },
+				lineNumbers: 'off',
+				scrollbar: {
+					vertical: 'hidden',
+					horizontal: 'auto',
+					verticalScrollbarSize: 0,
+					horizontalScrollbarSize: 8,
+					alwaysConsumeMouseWheel: false,
+					ignoreHorizontalScrollbarInContentHeight: true,
+				},
+				hover: { enabled: false },
+				folding: false,
+				selectionHighlight: false,
+				renderLineHighlight: 'none',
+				overviewRulerLanes: 0,
+				hideCursorInOverviewRuler: true,
+				overviewRulerBorder: false,
+				glyphMargin: false,
+				stickyScroll: { enabled: false },
+				scrollBeyondLastLine: false,
+				renderGutterMenu: false,
+				renderIndicators: false,
+			},
+			{ originalEditor: { isSimpleWidget: true }, modifiedEditor: { isSimpleWidget: true } }
+		);
+		editor.setModel({ original: originalModel, modified: modifiedModel });
+
+		// Calculate the height based on content
+		const updateHeight = () => {
+			const contentHeight = Math.max(
+				originalModel.getLineCount() * 19, // approximate line height
+				modifiedModel.getLineCount() * 19
+			) + 19 * 2 + 1; // add padding
+
+			// Set reasonable min/max heights
+			const height = Math.min(Math.max(contentHeight, 100), 300);
+			if (divRef.current) {
+				divRef.current.style.height = `${height}px`;
+				editor.layout();
+			}
+		};
+
+		updateHeight();
+		editorRef.current = editor;
+
+		// Update height when content changes
+		const disposable1 = originalModel.onDidChangeContent(() => updateHeight());
+		const disposable2 = modifiedModel.onDidChangeContent(() => updateHeight());
+
+		return () => {
+			disposable1.dispose();
+			disposable2.dispose();
+			editor.dispose();
+			editorRef.current = null;
+		};
+	}, [originalModel, modifiedModel, instantiationService]);
+
+	return (
+		<div className="w-full bg-void-bg-3 @@bg-editor-style-override" ref={divRef} />
+	);
+};
+
+
+
+
+
+/**
+ * ToolDiffEditor mounts a native VSCode DiffEditorWidget to show a diff between original and modified code blocks.
+ * Props:
+ *   - uri: URI of the file (for language detection, etc)
+ *   - searchReplaceBlocks: string in search/replace format (from LLM)
+ *   - language?: string (optional, fallback to 'plaintext')
+ */
+export const VoidDiffEditor = ({ uri, searchReplaceBlocks, language }: { uri?: any, searchReplaceBlocks: string, language?: string }) => {
+	const accessor = useAccessor();
+	const languageService = accessor.get('ILanguageService');
+
+	// Extract all blocks
+	const blocks = extractSearchReplaceBlocks(searchReplaceBlocks);
+
+	// Use detectLanguage for language detection if not provided
+	let lang = language;
+	if (!lang && blocks.length > 0) {
+		lang = detectLanguage(languageService, { uri: uri ?? null, fileContents: blocks[0].orig });
+	}
+
+	// If no blocks, show empty state
+	if (blocks.length === 0) {
+		return <div className="w-full p-4 text-void-fg-4 text-sm">No changes found</div>;
+	}
+
+	// Display all blocks
+	return (
+		<div className="w-full flex flex-col gap-2">
+			{blocks.map((block, index) => (
+				<div key={index} className="w-full">
+					{blocks.length > 1 && (
+						<div className="text-void-fg-4 text-xs mb-1 px-1">
+							Change {index + 1} of {blocks.length}
+						</div>
+					)}
+					<SingleDiffEditor block={block} lang={lang} />
+				</div>
+			))}
+		</div>
+	);
+};
 
 

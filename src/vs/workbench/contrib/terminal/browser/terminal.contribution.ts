@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { getFontSnippets } from '../../../../base/browser/fonts.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { isIOS, isWindows } from '../../../../base/common/platform.js';
@@ -13,19 +14,16 @@ import './media/widgets.css';
 import './media/xterm.css';
 import * as nls from '../../../../nls.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessibility/common/accessibility.js';
-import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { Extensions as DragAndDropExtensions, IDragAndDropContributionRegistry, IDraggedResourceEditorInput } from '../../../../platform/dnd/browser/dnd.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { IQuickAccessRegistry, Extensions as QuickAccessExtensions } from '../../../../platform/quickinput/common/quickAccess.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { GeneralShellType, ITerminalLogService, WindowsShellType } from '../../../../platform/terminal/common/terminal.js';
 import { TerminalLogService } from '../../../../platform/terminal/common/terminalLogService.js';
 import { registerTerminalPlatformConfiguration } from '../../../../platform/terminal/common/terminalPlatformConfiguration.js';
 import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
-import { getQuickNavigateHandler } from '../../../browser/quickaccess.js';
 import { WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { EditorExtensions, IEditorFactoryRegistry } from '../../../common/editor.js';
 import { IViewContainersRegistry, IViewsRegistry, Extensions as ViewContainerExtensions, ViewContainerLocation } from '../../../common/views.js';
@@ -44,16 +42,15 @@ import { TerminalInstanceService } from './terminalInstanceService.js';
 import { TerminalMainContribution } from './terminalMainContribution.js';
 import { setupTerminalMenus } from './terminalMenus.js';
 import { TerminalProfileService } from './terminalProfileService.js';
-import { TerminalQuickAccessProvider } from './terminalQuickAccess.js';
 import { TerminalService } from './terminalService.js';
 import { TerminalViewPane } from './terminalView.js';
-import { TerminalWslRecommendationContribution } from './terminalWslRecommendationContribution.js';
 import { ITerminalProfileService, TERMINAL_VIEW_ID, TerminalCommandId } from '../common/terminal.js';
 import { registerColors } from '../common/terminalColorRegistry.js';
 import { registerTerminalConfiguration } from '../common/terminalConfiguration.js';
 import { TerminalContextKeyStrings, TerminalContextKeys } from '../common/terminalContextKey.js';
 import { terminalStrings } from '../common/terminalStrings.js';
 import { registerSendSequenceKeybinding } from './terminalKeybindings.js';
+import { TerminalTelemetryContribution } from './terminalTelemetry.js';
 
 // Register services
 registerSingleton(ITerminalLogService, TerminalLogService, InstantiationType.Delayed);
@@ -64,30 +61,15 @@ registerSingleton(ITerminalGroupService, TerminalGroupService, InstantiationType
 registerSingleton(ITerminalInstanceService, TerminalInstanceService, InstantiationType.Delayed);
 registerSingleton(ITerminalProfileService, TerminalProfileService, InstantiationType.Delayed);
 
-// Register quick accesses
-const quickAccessRegistry = (Registry.as<IQuickAccessRegistry>(QuickAccessExtensions.Quickaccess));
-const inTerminalsPicker = 'inTerminalPicker';
-quickAccessRegistry.registerQuickAccessProvider({
-	ctor: TerminalQuickAccessProvider,
-	prefix: TerminalQuickAccessProvider.PREFIX,
-	contextKey: inTerminalsPicker,
-	placeholder: nls.localize('tasksQuickAccessPlaceholder', "Type the name of a terminal to open."),
-	helpEntries: [{ description: nls.localize('tasksQuickAccessHelp', "Show All Opened Terminals"), commandId: TerminalCommandId.QuickOpenTerm }]
-});
-const quickAccessNavigateNextInTerminalPickerId = 'workbench.action.quickOpenNavigateNextInTerminalPicker';
-CommandsRegistry.registerCommand({ id: quickAccessNavigateNextInTerminalPickerId, handler: getQuickNavigateHandler(quickAccessNavigateNextInTerminalPickerId, true) });
-const quickAccessNavigatePreviousInTerminalPickerId = 'workbench.action.quickOpenNavigatePreviousInTerminalPicker';
-CommandsRegistry.registerCommand({ id: quickAccessNavigatePreviousInTerminalPickerId, handler: getQuickNavigateHandler(quickAccessNavigatePreviousInTerminalPickerId, false) });
-
 // Register workbench contributions
 // This contribution blocks startup as it's critical to enable the web embedder window.createTerminal API
 registerWorkbenchContribution2(TerminalMainContribution.ID, TerminalMainContribution, WorkbenchPhase.BlockStartup);
 registerWorkbenchContribution2(RemoteTerminalBackendContribution.ID, RemoteTerminalBackendContribution, WorkbenchPhase.AfterRestored);
-registerWorkbenchContribution2(TerminalWslRecommendationContribution.ID, TerminalWslRecommendationContribution, WorkbenchPhase.Eventually);
+registerWorkbenchContribution2(TerminalTelemetryContribution.ID, TerminalTelemetryContribution, WorkbenchPhase.AfterRestored);
 
 // Register configurations
 registerTerminalPlatformConfiguration();
-registerTerminalConfiguration();
+registerTerminalConfiguration(getFontSnippets);
 
 // Register editor/dnd contributions
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEditorSerializer(TerminalEditorInput.ID, TerminalInputSerializer);
@@ -137,7 +119,7 @@ Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry).registerViews
 	id: TERMINAL_VIEW_ID,
 	name: nls.localize2('terminal', "Terminal"),
 	containerIcon: terminalViewIcon,
-	canToggleVisibility: false,
+	canToggleVisibility: true,
 	canMoveView: true,
 	ctorDescriptor: new SyncDescriptor(TerminalViewPane),
 	openCommandActionDescriptor: {

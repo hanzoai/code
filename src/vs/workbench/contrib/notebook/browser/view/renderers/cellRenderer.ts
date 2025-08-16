@@ -84,7 +84,7 @@ export class NotebookCellListDelegate extends Disposable implements IListVirtual
 	}
 }
 
-abstract class AbstractCellRenderer {
+abstract class AbstractCellRenderer extends Disposable {
 	protected readonly editorOptions: CellEditorOptions;
 
 	constructor(
@@ -99,11 +99,12 @@ abstract class AbstractCellRenderer {
 		language: string,
 		protected dndController: CellDragAndDropController | undefined
 	) {
-		this.editorOptions = new CellEditorOptions(this.notebookEditor.getBaseCellEditorOptions(language), this.notebookEditor.notebookOptions, configurationService);
+		super();
+		this.editorOptions = this._register(new CellEditorOptions(this.notebookEditor.getBaseCellEditorOptions(language), this.notebookEditor.notebookOptions, configurationService));
 	}
 
-	dispose() {
-		this.editorOptions.dispose();
+	override dispose() {
+		super.dispose();
 		this.dndController = undefined;
 	}
 }
@@ -176,7 +177,7 @@ export class MarkupCellRenderer extends AbstractCellRenderer implements IListRen
 			templateDisposables.add(scopedInstaService.createInstance(CellEditorStatusBar, this.notebookEditor, container, editorPart, undefined)),
 			templateDisposables.add(new CellFocusIndicator(this.notebookEditor, titleToolbar, focusIndicatorTop, focusIndicatorLeft, focusIndicatorRight, focusIndicatorBottom)),
 			templateDisposables.add(new FoldedCellHint(this.notebookEditor, DOM.append(container, $('.notebook-folded-hint')), this._notebookExecutionStateService)),
-			templateDisposables.add(new CellDecorations(rootContainer, decorationContainer)),
+			templateDisposables.add(new CellDecorations(this.notebookEditor, rootContainer, decorationContainer)),
 			templateDisposables.add(scopedInstaService.createInstance(CellComments, this.notebookEditor, cellCommentPartContainer)),
 			templateDisposables.add(new CollapsedCellInput(this.notebookEditor, cellInputCollapsedContainer)),
 			templateDisposables.add(new CellFocusPart(container, undefined, this.notebookEditor)),
@@ -199,7 +200,7 @@ export class MarkupCellRenderer extends AbstractCellRenderer implements IListRen
 			editorContainer,
 			foldingIndicator,
 			templateDisposables,
-			elementDisposables: new DisposableStore(),
+			elementDisposables: templateDisposables.add(new DisposableStore()),
 			cellParts,
 			toJSON: () => { return {}; }
 		};
@@ -225,7 +226,6 @@ export class MarkupCellRenderer extends AbstractCellRenderer implements IListRen
 	}
 
 	disposeTemplate(templateData: MarkdownCellRenderTemplate): void {
-		templateData.elementDisposables.dispose();
 		templateData.templateDisposables.dispose();
 	}
 
@@ -329,7 +329,7 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 			templateDisposables.add(scopedInstaService.createInstance(CellChatPart, this.notebookEditor, cellChatPart)),
 			templateDisposables.add(scopedInstaService.createInstance(CellEditorStatusBar, this.notebookEditor, container, editorPart, editor)),
 			templateDisposables.add(scopedInstaService.createInstance(CellProgressBar, editorPart, cellInputCollapsedContainer)),
-			templateDisposables.add(new CellDecorations(rootContainer, decorationContainer)),
+			templateDisposables.add(new CellDecorations(this.notebookEditor, rootContainer, decorationContainer)),
 			templateDisposables.add(scopedInstaService.createInstance(CellComments, this.notebookEditor, cellCommentPartContainer)),
 			templateDisposables.add(scopedInstaService.createInstance(CellExecutionPart, this.notebookEditor, executionOrderLabel)),
 			templateDisposables.add(scopedInstaService.createInstance(CollapsedCellOutput, this.notebookEditor, cellOutputCollapsedContainer)),
@@ -366,7 +366,7 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 			outputShowMoreContainer,
 			editor,
 			templateDisposables,
-			elementDisposables: new DisposableStore(),
+			elementDisposables: templateDisposables.add(new DisposableStore()),
 			cellParts,
 			toJSON: () => { return {}; }
 		};
@@ -397,7 +397,7 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 	}
 
 	disposeTemplate(templateData: CodeCellRenderTemplate): void {
-		templateData.templateDisposables.clear();
+		templateData.templateDisposables.dispose();
 	}
 
 	disposeElement(element: ICellViewModel, index: number, templateData: CodeCellRenderTemplate, height: number | undefined): void {

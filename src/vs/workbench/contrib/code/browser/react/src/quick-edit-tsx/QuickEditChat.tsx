@@ -11,11 +11,13 @@ import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
 import { ModelDropdown } from '../code-settings-tsx/ModelDropdown.js';
 import { CODE_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
-import { useScrollbarStyles } from '../util/useScrollbarStyles.js';
+import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
+
+
+
 
 export const QuickEditChat = ({
 	diffareaid,
-	initStreamingDiffZoneId,
 	onChangeHeight,
 	onChangeText: onChangeText_,
 	textAreaRef: textAreaRef_,
@@ -23,7 +25,7 @@ export const QuickEditChat = ({
 }: QuickEditPropsType) => {
 
 	const accessor = useAccessor()
-	const inlineDiffsService = accessor.get('IInlineDiffsService')
+	const editCodeService = accessor.get('IEditCodeService')
 	const sizerRef = useRef<HTMLDivElement | null>(null)
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 	const textAreaFnsRef = useRef<TextAreaFns | null>(null)
@@ -42,43 +44,57 @@ export const QuickEditChat = ({
 	}, [onChangeHeight]);
 
 
+	const settingsState = useSettingsState()
+
 	// state of current message
 	const [instructionsAreEmpty, setInstructionsAreEmpty] = useState(!(initText ?? '')) // the user's instructions
-	const isDisabled = instructionsAreEmpty
+	const isDisabled = instructionsAreEmpty || !!isFeatureNameDisabled('Ctrl+K', settingsState)
 
-	const [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone] = useRefState<number | null>(initStreamingDiffZoneId)
-	const isStreaming = currStreamingDiffZoneRef.current !== null
 
-	const onSubmit = useCallback((e: FormEvent) => {
+	const [isStreamingRef, setIsStreamingRef] = useRefState(editCodeService.isCtrlKZoneStreaming({ diffareaid }))
+	useCtrlKZoneStreamingState(useCallback((diffareaid2, isStreaming) => {
+		if (diffareaid !== diffareaid2) return
+		setIsStreamingRef(isStreaming)
+	}, [diffareaid, setIsStreamingRef]))
+
+	const loadingIcon = <div
+		className="@@codicon @@codicon-loading @@codicon-modifier-spin @@codicon-no-default-spin text-void-fg-3"
+	/>
+
+	const onSubmit = useCallback(async () => {
 		if (isDisabled) return
-		if (currStreamingDiffZoneRef.current !== null) return
+		if (isStreamingRef.current) return
 		textAreaFnsRef.current?.disable()
 
-		const instructions = textAreaRef.current?.value ?? ''
-		const id = inlineDiffsService.startApplying({
-			featureName: 'Ctrl+K',
-			diffareaid: diffareaid,
-		})
-		setCurrentlyStreamingDiffZone(id ?? null)
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, isDisabled, inlineDiffsService, diffareaid])
+		const opts = {
+			from: 'QuickEdit',
+			diffareaid,
+			startBehavior: 'keep-conflicts',
+		} as const
+
+		await editCodeService.callBeforeApplyOrEdit(opts)
+		const [newApplyingUri, applyDonePromise] = editCodeService.startApplying(opts) ?? []
+		// catch any errors by interrupting the stream
+		applyDonePromise?.catch(e => { if (newApplyingUri) editCodeService.interruptCtrlKStreaming({ diffareaid }) })
+
+
+	}, [isStreamingRef, isDisabled, editCodeService, diffareaid])
 
 	const onInterrupt = useCallback(() => {
-		if (currStreamingDiffZoneRef.current === null) return
-		inlineDiffsService.interruptStreaming(currStreamingDiffZoneRef.current)
-		setCurrentlyStreamingDiffZone(null)
+		if (!isStreamingRef.current) return
+		editCodeService.interruptCtrlKStreaming({ diffareaid })
 		textAreaFnsRef.current?.enable()
-	}, [currStreamingDiffZoneRef, setCurrentlyStreamingDiffZone, inlineDiffsService])
+	}, [isStreamingRef, editCodeService])
 
 
 	const onX = useCallback(() => {
 		onInterrupt()
-		inlineDiffsService.removeCtrlKZone({ diffareaid })
-	}, [inlineDiffsService, diffareaid])
-
-	useScrollbarStyles(sizerRef)
+		editCodeService.removeCtrlKZone({ diffareaid })
+	}, [editCodeService, diffareaid])
 
 	const keybindingString = accessor.get('IKeybindingService').lookupKeybinding(CODE_CTRL_K_ACTION_ID)?.getLabel()
 
+	const chatAreaRef = useRef<HTMLDivElement | null>(null)
 	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
 		<form
 			// copied from SidebarChat.tsx
@@ -178,11 +194,10 @@ export const QuickEditChat = ({
 							disabled={isDisabled}
 						/>
 					}
-				</div>
-			</div>
-
-
-		</form>
+				}}
+				multiline={true}
+			/>
+		</VoidChatArea>
 	</div>
 
 

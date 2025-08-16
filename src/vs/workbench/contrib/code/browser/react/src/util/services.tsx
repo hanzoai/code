@@ -19,6 +19,7 @@ import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/
 
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
+import { IExplorerService } from '../../../../../../../workbench/contrib/files/browser/files.js'
 import { IModelService } from '../../../../../../../editor/common/services/model.js';
 import { IClipboardService } from '../../../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextViewService, IContextMenuService } from '../../../../../../../platform/contextview/browser/contextView.js';
@@ -46,8 +47,24 @@ import { IKeybindingService } from '../../../../../../../platform/keybinding/com
 import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
-import { IMetricsService } from '../../../../../../../platform/void/common/metricsService.js'
-
+import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { URI } from '../../../../../../../base/common/uri.js'
+import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
+import { ITerminalToolService } from '../../../terminalToolService.js'
+import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
+import { IVoidModelService } from '../../../../common/voidModelService.js'
+import { IWorkspaceContextService } from '../../../../../../../platform/workspace/common/workspace.js'
+import { IVoidCommandBarService } from '../../../voidCommandBarService.js'
+import { INativeHostService } from '../../../../../../../platform/native/common/native.js';
+import { IEditCodeService } from '../../../editCodeServiceInterface.js'
+import { IToolsService } from '../../../toolsService.js'
+import { IConvertToLLMMessageService } from '../../../convertToLLMMessageService.js'
+import { ITerminalService } from '../../../../../terminal/browser/terminal.js'
+import { ISearchService } from '../../../../../../services/search/common/search.js'
+import { IExtensionManagementService } from '../../../../../../../platform/extensionManagement/common/extensionManagement.js'
+import { IMCPService } from '../../../../common/mcpService.js';
+import { IStorageService, StorageScope } from '../../../../../../../platform/storage/common/storage.js'
+import { OPT_OUT_KEY } from '../../../../common/storageKeys.js'
 
 
 // normally to do this you'd use a useEffect that calls .onDidChangeState(), but useEffect mounts too late and misses initial state changes
@@ -79,9 +96,15 @@ const refreshModelProviderListeners: Set<(p: RefreshableProviderName, s: Refresh
 let colorThemeState: ColorScheme
 const colorThemeStateListeners: Set<(s: ColorScheme) => void> = new Set()
 
+const ctrlKZoneStreamingStateListeners: Set<(diffareaid: number, s: boolean) => void> = new Set()
+const commandBarURIStateListeners: Set<(uri: URI) => void> = new Set();
+const activeURIListeners: Set<(uri: URI | null) => void> = new Set();
+
+const mcpListeners: Set<() => void> = new Set()
+
+
 // must call this before you can use any of the hooks below
 // this should only be called ONCE! this is the only place you don't need to dispose onDidChange. If you use state.onDidChange anywhere else, make sure to dispose it!
-let wasCalled = false
 export const _registerServices = (accessor: ServicesAccessor) => {
 
 	const disposables: IDisposable[] = []
@@ -103,34 +126,16 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		settingsStateService: accessor.get(ICodeSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
-		inlineDiffsService: accessor.get(IInlineDiffsService),
+		editCodeService: accessor.get(IEditCodeService),
+		voidCommandBarService: accessor.get(IVoidCommandBarService),
+		modelService: accessor.get(IModelService),
+		mcpService: accessor.get(IMCPService),
 	}
 
-	const { uriStateService, sidebarStateService, quickEditStateService, settingsStateService, chatThreadsStateService, refreshModelService, themeService, inlineDiffsService } = stateServices
+	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService, mcpService } = stateServices
 
-	uriState = uriStateService.state
-	disposables.push(
-		uriStateService.onDidChangeState(() => {
-			uriState = uriStateService.state
-			uriStateListeners.forEach(l => l(uriState))
-		})
-	)
 
-	quickEditState = quickEditStateService.state
-	disposables.push(
-		quickEditStateService.onDidChangeState(() => {
-			quickEditState = quickEditStateService.state
-			quickEditStateListeners.forEach(l => l(quickEditState))
-		})
-	)
 
-	sidebarState = sidebarStateService.state
-	disposables.push(
-		sidebarStateService.onDidChangeState(() => {
-			sidebarState = sidebarStateService.state
-			sidebarStateListeners.forEach(l => l(sidebarState))
-		})
-	)
 
 	chatThreadsState = chatThreadsStateService.state
 	disposables.push(
@@ -162,15 +167,41 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 		refreshModelService.onDidChangeState((providerName) => {
 			refreshModelState = refreshModelService.state
 			refreshModelStateListeners.forEach(l => l(refreshModelState))
-			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState))
+			refreshModelProviderListeners.forEach(l => l(providerName, refreshModelState)) // no state
 		})
 	)
 
 	colorThemeState = themeService.getColorTheme().type
 	disposables.push(
-		themeService.onDidColorThemeChange(theme => {
-			colorThemeState = theme.type
+		themeService.onDidColorThemeChange(({ type }) => {
+			colorThemeState = type
 			colorThemeStateListeners.forEach(l => l(colorThemeState))
+		})
+	)
+
+	// no state
+	disposables.push(
+		editCodeService.onDidChangeStreamingInCtrlKZone(({ diffareaid }) => {
+			const isStreaming = editCodeService.isCtrlKZoneStreaming({ diffareaid })
+			ctrlKZoneStreamingStateListeners.forEach(l => l(diffareaid, isStreaming))
+		})
+	)
+
+	disposables.push(
+		voidCommandBarService.onDidChangeState(({ uri }) => {
+			commandBarURIStateListeners.forEach(l => l(uri));
+		})
+	)
+
+	disposables.push(
+		voidCommandBarService.onDidChangeActiveURI(({ uri }) => {
+			activeURIListeners.forEach(l => l(uri));
+		})
+	)
+
+	disposables.push(
+		mcpService.onDidChangeState(() => {
+			mcpListeners.forEach(l => l())
 		})
 	)
 
@@ -208,11 +239,28 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILanguageDetectionService: accessor.get(ILanguageDetectionService),
 		ILanguageFeaturesService: accessor.get(ILanguageFeaturesService),
 		IKeybindingService: accessor.get(IKeybindingService),
+		ISearchService: accessor.get(ISearchService),
 
+		IExplorerService: accessor.get(IExplorerService),
 		IEnvironmentService: accessor.get(IEnvironmentService),
 		IConfigurationService: accessor.get(IConfigurationService),
 		IPathService: accessor.get(IPathService),
 		IMetricsService: accessor.get(IMetricsService),
+		ITerminalToolService: accessor.get(ITerminalToolService),
+		ILanguageService: accessor.get(ILanguageService),
+		IVoidModelService: accessor.get(IVoidModelService),
+		IWorkspaceContextService: accessor.get(IWorkspaceContextService),
+
+		IVoidCommandBarService: accessor.get(IVoidCommandBarService),
+		INativeHostService: accessor.get(INativeHostService),
+		IToolsService: accessor.get(IToolsService),
+		IConvertToLLMMessageService: accessor.get(IConvertToLLMMessageService),
+		ITerminalService: accessor.get(ITerminalService),
+		IExtensionManagementService: accessor.get(IExtensionManagementService),
+		IExtensionTransferService: accessor.get(IExtensionTransferService),
+		IMCPService: accessor.get(IMCPService),
+
+		IStorageService: accessor.get(IStorageService),
 
 	} as const
 	return reactAccessor
@@ -240,36 +288,6 @@ export const useAccessor = () => {
 
 // -- state of services --
 
-export const useUriState = () => {
-	const [s, ss] = useState(uriState)
-	useEffect(() => {
-		ss(uriState)
-		uriStateListeners.add(ss)
-		return () => { uriStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
-
-export const useQuickEditState = () => {
-	const [s, ss] = useState(quickEditState)
-	useEffect(() => {
-		ss(quickEditState)
-		quickEditStateListeners.add(ss)
-		return () => { quickEditStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
-
-export const useSidebarState = () => {
-	const [s, ss] = useState(sidebarState)
-	useEffect(() => {
-		ss(sidebarState)
-		sidebarStateListeners.add(ss)
-		return () => { sidebarStateListeners.delete(ss) }
-	}, [ss])
-	return s
-}
-
 export const useSettingsState = () => {
 	const [s, ss] = useState(settingsState)
 	useEffect(() => {
@@ -288,6 +306,17 @@ export const useChatThreadsState = () => {
 		return () => { chatThreadsStateListeners.delete(ss) }
 	}, [ss])
 	return s
+	// allow user to set state natively in react
+	// const ss: React.Dispatch<React.SetStateAction<ThreadsState>> = (action)=>{
+	// 	_ss(action)
+	// 	if (typeof action === 'function') {
+	// 		const newState = action(chatThreadsState)
+	// 		chatThreadsState = newState
+	// 	} else {
+	// 		chatThreadsState = action
+	// 	}
+	// }
+	// return [s, ss] as const
 }
 
 
@@ -307,6 +336,16 @@ export const useChatThreadsStreamState = (threadId: string) => {
 	return s
 }
 
+export const useFullChatThreadsStreamState = () => {
+	const [s, ss] = useState(chatThreadsStreamState)
+	useEffect(() => {
+		ss(chatThreadsStreamState)
+		const listener = () => { ss(chatThreadsStreamState) }
+		chatThreadsStreamStateListeners.add(listener)
+		return () => { chatThreadsStreamStateListeners.delete(listener) }
+	}, [ss])
+	return s
+}
 
 
 
@@ -325,9 +364,15 @@ export const useRefreshModelListener = (listener: (providerName: RefreshableProv
 	useEffect(() => {
 		refreshModelProviderListeners.add(listener)
 		return () => { refreshModelProviderListeners.delete(listener) }
-	}, [listener])
+	}, [listener, refreshModelProviderListeners])
 }
 
+export const useCtrlKZoneStreamingState = (listener: (diffareaid: number, s: boolean) => void) => {
+	useEffect(() => {
+		ctrlKZoneStreamingStateListeners.add(listener)
+		return () => { ctrlKZoneStreamingStateListeners.delete(listener) }
+	}, [listener, ctrlKZoneStreamingStateListeners])
+}
 
 export const useIsDark = () => {
 	const [s, ss] = useState(colorThemeState)
@@ -340,5 +385,76 @@ export const useIsDark = () => {
 	// s is the theme, return isDark instead of s
 	const isDark = s === ColorScheme.DARK || s === ColorScheme.HIGH_CONTRAST_DARK
 	return isDark
+}
 
+export const useCommandBarURIListener = (listener: (uri: URI) => void) => {
+	useEffect(() => {
+		commandBarURIStateListeners.add(listener);
+		return () => { commandBarURIStateListeners.delete(listener) };
+	}, [listener]);
+};
+export const useCommandBarState = () => {
+	const accessor = useAccessor()
+	const commandBarService = accessor.get('IVoidCommandBarService')
+	const [s, ss] = useState({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+	const listener = useCallback(() => {
+		ss({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
+	}, [commandBarService])
+	useCommandBarURIListener(listener)
+
+	return s;
+}
+
+
+
+// roughly gets the active URI - this is used to get the history of recent URIs
+export const useActiveURI = () => {
+	const accessor = useAccessor()
+	const commandBarService = accessor.get('IVoidCommandBarService')
+	const [s, ss] = useState(commandBarService.activeURI)
+	useEffect(() => {
+		const listener = () => { ss(commandBarService.activeURI) }
+		activeURIListeners.add(listener);
+		return () => { activeURIListeners.delete(listener) };
+	}, [])
+	return { uri: s }
+}
+
+
+
+
+export const useMCPServiceState = () => {
+	const accessor = useAccessor()
+	const mcpService = accessor.get('IMCPService')
+	const [s, ss] = useState(mcpService.state)
+	useEffect(() => {
+		const listener = () => { ss(mcpService.state) }
+		mcpListeners.add(listener);
+		return () => { mcpListeners.delete(listener) };
+	}, []);
+	return s
+}
+
+
+
+export const useIsOptedOut = () => {
+	const accessor = useAccessor()
+	const storageService = accessor.get('IStorageService')
+
+	const getVal = useCallback(() => {
+		return storageService.getBoolean(OPT_OUT_KEY, StorageScope.APPLICATION, false)
+	}, [storageService])
+
+	const [s, ss] = useState(getVal())
+
+	useEffect(() => {
+		const disposables = new DisposableStore();
+		const d = storageService.onDidChangeValue(StorageScope.APPLICATION, OPT_OUT_KEY, disposables)(e => {
+			ss(getVal())
+		})
+		disposables.add(d)
+		return () => disposables.clear()
+	}, [storageService, getVal])
+
+	return s
 }
