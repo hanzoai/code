@@ -18,8 +18,11 @@ export const enum AccessibleViewProviderId {
 	TerminalChat = 'terminal-chat',
 	TerminalHelp = 'terminal-help',
 	DiffEditor = 'diffEditor',
-	Chat = 'panelChat',
+	MergeEditor = 'mergeEditor',
+	PanelChat = 'panelChat',
 	InlineChat = 'inlineChat',
+	AgentChat = 'agentChat',
+	QuickChat = 'quickChat',
 	InlineCompletions = 'inlineCompletions',
 	KeybindingsEditor = 'keybindingsEditor',
 	Notebook = 'notebook',
@@ -34,6 +37,7 @@ export const enum AccessibleViewProviderId {
 	ReplHelp = 'replHelp',
 	RunAndDebug = 'runAndDebug',
 	Walkthrough = 'walkthrough',
+	SourceControl = 'scm'
 }
 
 export const enum AccessibleViewType {
@@ -165,6 +169,10 @@ export class AccessibleContentProvider extends Disposable implements IAccessible
 	) {
 		super();
 	}
+}
+
+export function isIAccessibleViewContentProvider(obj: any): obj is IAccessibleViewContentProvider {
+	return obj && obj.id && obj.options && obj.provideContent && obj.onClose && obj.verbositySettingKey;
 }
 
 export class ExtensionContentProvider extends Disposable implements IBasicContentProvider {

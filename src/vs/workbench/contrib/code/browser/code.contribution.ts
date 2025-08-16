@@ -5,21 +5,22 @@
 
 
 // register inline diffs
-import './inlineDiffsService.js'
+import './editCodeService.js'
 
 // register Sidebar pane, state, actions (keybinds, menus) (Ctrl+L)
 import './sidebarActions.js'
 import './sidebarPane.js'
-import './sidebarStateService.js'
 
 // register quick edit (Ctrl+K)
 import './quickEditActions.js'
 
-// register Thread History
-import './chatThreadService.js'
 
 // register Autocomplete
 import './autocompleteService.js'
+
+// register Context services
+// import './contextGatheringService.js'
+// import './contextUserChangesService.js'
 
 // settings pane
 import './codeSettingsPane.js'

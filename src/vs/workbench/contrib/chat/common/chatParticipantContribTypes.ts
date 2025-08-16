@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { RawChatParticipantLocation } from './constants.js';
+
 export interface IRawChatCommandContribution {
 	name: string;
 	description: string;
@@ -13,23 +15,19 @@ export interface IRawChatCommandContribution {
 	disambiguation?: { category: string; categoryName?: string /** Deprecated */; description: string; examples: string[] }[];
 }
 
-export type RawChatParticipantLocation = 'panel' | 'terminal' | 'notebook';
-
 export interface IRawChatParticipantContribution {
 	id: string;
 	name: string;
 	fullName: string;
 	when?: string;
 	description?: string;
-	supportsModelPicker?: boolean;
 	isDefault?: boolean;
+	isAgent?: boolean;
 	isSticky?: boolean;
 	sampleRequest?: string;
 	commands?: IRawChatCommandContribution[];
-	defaultImplicitVariables?: string[];
 	locations?: RawChatParticipantLocation[];
 	disambiguation?: { category: string; categoryName?: string /** Deprecated */; description: string; examples: string[] }[];
-	supportsToolReferences?: boolean;
 }
 
 /**
