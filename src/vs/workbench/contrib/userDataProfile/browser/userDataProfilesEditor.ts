@@ -5,7 +5,7 @@
 
 import './media/userDataProfilesEditor.css';
 import { $, addDisposableListener, append, clearNode, Dimension, EventHelper, EventType, IDomPosition, trackFocus } from '../../../../base/browser/dom.js';
-import { Action, IAction, IActionChangeEvent, Separator, SubmenuAction } from '../../../../base/common/actions.js';
+import { Action, IAction, IActionChangeEvent, Separator, SubmenuAction, toAction } from '../../../../base/common/actions.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize } from '../../../../nls.js';
@@ -20,7 +20,7 @@ import { IEditorOpenContext, IEditorSerializer, IUntypedEditorInput } from '../.
 import { EditorInput } from '../../../common/editor/editorInput.js';
 import { IUserDataProfilesEditor } from '../common/userDataProfile.js';
 import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';
-import { defaultUserDataProfileIcon, IProfileTemplateInfo, IUserDataProfileService, PROFILE_FILTER } from '../../../services/userDataProfile/common/userDataProfile.js';
+import { defaultUserDataProfileIcon, IProfileTemplateInfo, IUserDataProfileManagementService, IUserDataProfileService, PROFILE_FILTER } from '../../../services/userDataProfile/common/userDataProfile.js';
 import { Orientation, Sizing, SplitView } from '../../../../base/browser/ui/splitview/splitview.js';
 import { Button, ButtonBar, ButtonWithDropdown } from '../../../../base/browser/ui/button/button.js';
 import { defaultButtonStyles, defaultCheckboxStyles, defaultInputBoxStyles, defaultSelectBoxStyles, getInputBoxStyle, getListStyles } from '../../../../platform/theme/browser/defaultStyles.js';
@@ -71,6 +71,7 @@ import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js'
 import { DropdownMenuActionViewItem } from '../../../../base/browser/ui/dropdown/dropdownActionViewItem.js';
 
 const editIcon = registerIcon('profiles-editor-edit-folder', Codicon.edit, localize('editIcon', 'Icon for the edit folder icon in the profiles editor.'));
+const removeIcon = registerIcon('profiles-editor-remove-folder', Codicon.close, localize('removeIcon', 'Icon for the remove folder icon in the profiles editor.'));
 
 export const profilesSashBorder = registerColor('profiles.sashBorder', PANEL_BORDER, localize('profilesSashBorder', "The color of the Profiles editor splitview sash border."));
 
@@ -224,7 +225,11 @@ export class UserDataProfilesEditor extends EditorPane implements IUserDataProfi
 						actions.push(new SubmenuAction('from.template', localize('from template', "From Template"), this.getCreateFromTemplateActions()));
 						actions.push(new Separator());
 					}
-					actions.push(new Action('importProfile', localize('importProfile', "Import Profile..."), undefined, true, () => this.importProfile()));
+					actions.push(toAction({
+						id: 'importProfile',
+						label: localize('importProfile', "Import Profile..."),
+						run: () => this.importProfile()
+					}));
 					return actions;
 				}
 			},
@@ -239,12 +244,11 @@ export class UserDataProfilesEditor extends EditorPane implements IUserDataProfi
 
 	private getCreateFromTemplateActions(): IAction[] {
 		return this.templates.map(template =>
-			new Action(
-				`template:${template.url}`,
-				template.name,
-				undefined,
-				true,
-				() => this.createNewProfile(URI.parse(template.url))));
+			toAction({
+				id: `template:${template.url}`,
+				label: template.name,
+				run: () => this.createNewProfile(URI.parse(template.url))
+			}));
 	}
 
 	private registerListeners(): void {
@@ -281,13 +285,21 @@ export class UserDataProfilesEditor extends EditorPane implements IUserDataProfi
 
 	private getTreeContextMenuActions(): IAction[] {
 		const actions: IAction[] = [];
-		actions.push(new Action('newProfile', localize('newProfile', "New Profile"), undefined, true, () => this.createNewProfile()));
+		actions.push(toAction({
+			id: 'newProfile',
+			label: localize('newProfile', "New Profile"),
+			run: () => this.createNewProfile()
+		}));
 		const templateActions = this.getCreateFromTemplateActions();
 		if (templateActions.length) {
 			actions.push(new SubmenuAction('from.template', localize('new from template', "New Profile From Template"), templateActions));
 		}
 		actions.push(new Separator());
-		actions.push(new Action('importProfile', localize('importProfile', "Import Profile..."), undefined, true, () => this.importProfile()));
+		actions.push(toAction({
+			id: 'importProfile',
+			label: localize('importProfile', "Import Profile..."),
+			run: () => this.importProfile()
+		}));
 		return actions;
 	}
 
@@ -742,8 +754,10 @@ class ProfileTreeDataSource implements IAsyncDataSource<AbstractUserDataProfileE
 				children.push({ element: 'copyFrom', root: element });
 				children.push({ element: 'contents', root: element });
 			} else if (element instanceof UserDataProfileElement) {
-				children.push({ element: 'name', root: element });
-				children.push({ element: 'icon', root: element });
+				if (!element.profile.isDefault) {
+					children.push({ element: 'name', root: element });
+					children.push({ element: 'icon', root: element });
+				}
 				children.push({ element: 'useAsDefault', root: element });
 				children.push({ element: 'contents', root: element });
 				children.push({ element: 'workspaces', root: element });
@@ -1033,7 +1047,7 @@ class ProfileIconRenderer extends ProfilePropertyRenderer {
 				return;
 			}
 			iconSelectBox.clearInput();
-			hoverWidget = this.hoverService.showHover({
+			hoverWidget = this.hoverService.showInstantHover({
 				content: iconSelectBox.domNode,
 				target: iconElement,
 				position: {
@@ -1048,7 +1062,7 @@ class ProfileIconRenderer extends ProfilePropertyRenderer {
 			}, true);
 
 			if (hoverWidget) {
-				iconSelectBox.layout(new Dimension(486, 260));
+				iconSelectBox.layout(new Dimension(486, 292));
 				iconSelectBox.focus();
 			}
 		};
@@ -1569,8 +1583,8 @@ class ProfileWorkspacesRenderer extends ProfilePropertyRenderer {
 					label: '',
 					tooltip: '',
 					weight: 1,
-					minimumWidth: 60,
-					maximumWidth: 60,
+					minimumWidth: 84,
+					maximumWidth: 84,
 					templateId: WorkspaceUriActionsColumnRenderer.TEMPLATE_ID,
 					project(row: WorkspaceTableElement): WorkspaceTableElement { return row; }
 				},
@@ -1660,9 +1674,9 @@ class ProfileWorkspacesRenderer extends ProfilePropertyRenderer {
 					updateTable();
 				}
 				elementDisposables.add(profileElement.root.onDidChange(e => {
-					if (e.workspaces) {
+					if (profileElement && e.workspaces) {
 						updateTable();
-						that._onDidChangeContentHeight.fire(element);
+						that._onDidChangeContentHeight.fire(profileElement);
 					}
 				}));
 			},
@@ -1888,7 +1902,7 @@ class ProfileResourceChildTreeItemRenderer extends AbstractProfileResourceTreeRe
 	) {
 		super();
 		this.labels = instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER);
-		this.hoverDelegate = this._register(instantiationService.createInstance(WorkbenchHoverDelegate, 'mouse', false, {}));
+		this.hoverDelegate = this._register(instantiationService.createInstance(WorkbenchHoverDelegate, 'mouse', undefined, {}));
 	}
 
 	renderTemplate(parent: HTMLElement): IProfileResourceChildTreeItemTemplateData {
@@ -2097,7 +2111,37 @@ class WorkspaceUriPathColumnRenderer implements ITableRenderer<WorkspaceTableEle
 interface IActionsColumnTemplateData {
 	readonly actionBar: ActionBar;
 	readonly disposables: DisposableStore;
-	readonly renderDisposables: DisposableStore;
+}
+
+class ChangeProfileAction extends Action {
+
+	constructor(
+		private readonly item: WorkspaceTableElement,
+		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
+	) {
+		super('changeProfile', '', ThemeIcon.asClassName(editIcon));
+		this.tooltip = localize('change profile', "Change Profile");
+	}
+
+	getSwitchProfileActions(): IAction[] {
+		return this.userDataProfilesService.profiles
+			.filter(profile => !profile.isTransient)
+			.sort((a, b) => a.isDefault ? -1 : b.isDefault ? 1 : a.name.localeCompare(b.name))
+			.map<IAction>(profile => ({
+				id: `switchProfileTo${profile.id}`,
+				label: profile.name,
+				class: undefined,
+				enabled: true,
+				checked: profile.id === this.item.profileElement.profile.id,
+				tooltip: '',
+				run: () => {
+					if (profile.id === this.item.profileElement.profile.id) {
+						return;
+					}
+					this.userDataProfilesService.updateProfile(profile, { workspaces: [...(profile.workspaces ?? []), this.item.workspace] });
+				}
+			}));
+	}
 }
 
 class WorkspaceUriActionsColumnRenderer implements ITableRenderer<WorkspaceTableElement, IActionsColumnTemplateData> {
@@ -2108,6 +2152,7 @@ class WorkspaceUriActionsColumnRenderer implements ITableRenderer<WorkspaceTable
 
 	constructor(
 		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
+		@IUserDataProfileManagementService private readonly userDataProfileManagementService: IUserDataProfileManagementService,
 		@IContextMenuService private readonly contextMenuService: IContextMenuService,
 		@IUriIdentityService private readonly uriIdentityService: IUriIdentityService,
 	) {
@@ -2120,8 +2165,8 @@ class WorkspaceUriActionsColumnRenderer implements ITableRenderer<WorkspaceTable
 		const actionBar = disposables.add(new ActionBar(element, {
 			hoverDelegate,
 			actionViewItemProvider: (action) => {
-				if (action instanceof SubmenuAction) {
-					return new DropdownMenuActionViewItem(action, action.actions, this.contextMenuService, {
+				if (action instanceof ChangeProfileAction) {
+					return new DropdownMenuActionViewItem(action, { getActions: () => action.getSwitchProfileActions() }, this.contextMenuService, {
 						classNames: action.class,
 						hoverDelegate,
 					});
@@ -2129,24 +2174,16 @@ class WorkspaceUriActionsColumnRenderer implements ITableRenderer<WorkspaceTable
 				return undefined;
 			}
 		}));
-		const renderDisposables = disposables.add(new DisposableStore());
-		return { actionBar, disposables, renderDisposables };
+		return { actionBar, disposables };
 	}
 
 	renderElement(item: WorkspaceTableElement, index: number, templateData: IActionsColumnTemplateData, height: number | undefined): void {
-		const renderActions = () => {
-			templateData.actionBar.clear();
-			const actions: IAction[] = [];
-			actions.push(this.createOpenAction(item));
-			actions.push(this.createChangeProfileAction(item));
-			templateData.actionBar.push(actions, { icon: true });
-		};
-		renderActions();
-		templateData.renderDisposables.add(this.userDataProfilesService.onDidChangeProfiles(e => {
-			if (e.added.length || e.removed.length) {
-				renderActions();
-			}
-		}));
+		templateData.actionBar.clear();
+		const actions: IAction[] = [];
+		actions.push(this.createOpenAction(item));
+		actions.push(new ChangeProfileAction(item, this.userDataProfilesService));
+		actions.push(this.createDeleteAction(item));
+		templateData.actionBar.push(actions, { icon: true });
 	}
 
 	private createOpenAction(item: WorkspaceTableElement): IAction {
@@ -2160,48 +2197,19 @@ class WorkspaceUriActionsColumnRenderer implements ITableRenderer<WorkspaceTable
 		};
 	}
 
-	private createChangeProfileAction(item: WorkspaceTableElement): IAction {
-		if (this.userDataProfilesService.profiles.length === 1) {
-			return {
-				label: '',
-				class: ThemeIcon.asClassName(editIcon),
-				enabled: false,
-				id: 'changeProfile',
-				tooltip: localize('change profile', "Change Profile"),
-				run: () => { }
-			};
-		}
-		return new SubmenuAction(
-			'changeProfile',
-			localize('change profile', "Change Profile"),
-			this.userDataProfilesService.profiles
-				.filter(profile => !profile.isTransient)
-				.sort((a, b) => a.isDefault ? -1 : b.isDefault ? 1 : a.name.localeCompare(b.name))
-				.map<IAction>(profile => ({
-					id: `switchProfileTo${profile.id}`,
-					label: profile.name,
-					class: undefined,
-					enabled: true,
-					checked: profile.id === item.profileElement.profile.id,
-					tooltip: '',
-					run: () => {
-						if (profile.id === item.profileElement.profile.id) {
-							return;
-						}
-						this.userDataProfilesService.updateProfile(profile, { workspaces: [...(profile.workspaces ?? []), item.workspace] });
-					}
-				})),
-			ThemeIcon.asClassName(editIcon),
-		);
-	}
-
-	disposeElement(element: WorkspaceTableElement, index: number, templateData: IActionsColumnTemplateData, height: number | undefined): void {
-		templateData.renderDisposables.clear();
+	private createDeleteAction(item: WorkspaceTableElement): IAction {
+		return {
+			label: '',
+			class: ThemeIcon.asClassName(removeIcon),
+			enabled: this.userDataProfileManagementService.getDefaultProfileToUse().id !== item.profileElement.profile.id,
+			id: 'deleteTrustedUri',
+			tooltip: localize('deleteTrustedUri', "Delete Path"),
+			run: () => item.profileElement.updateWorkspaces([], [item.workspace])
+		};
 	}
 
 	disposeTemplate(templateData: IActionsColumnTemplateData): void {
 		templateData.disposables.dispose();
-		templateData.renderDisposables.dispose();
 	}
 
 }
