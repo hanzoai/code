@@ -15,11 +15,9 @@ This repo contains the full sourcecode for Code. We are currently in [open beta]
 
 ## Contributing
 
-1. To get started working on Void, check out our Project Board! You can also see [HOW_TO_CONTRIBUTE](https://github.com/voideditor/void/blob/main/HOW_TO_CONTRIBUTE.md).
+1. To get started working on Code, see [Contributing](https://github.com/hanzoai/code/blob/main/CONTRIBUTING.md).
 
-2. To get started working on Code, see [Contributing](https://github.com/hanzoai/code/blob/main/CONTRIBUTING.md).
-
-3. We're open to collaborations and suggestions of all types - just reach out.
+2. We're open to collaborations and suggestions of all types - just reach out.
 
 
 ## Reference
