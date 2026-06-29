@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/hero.svg" alt="code" width="880"></p>
+
 # code
 
 Code is the open-source Cursor alternative.
