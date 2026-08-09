@@ -122,7 +122,7 @@ export class TelemetryService implements ITelemetryService {
 	}
 
 	// Code commented this out
-	// private _log(eventName: string, eventLevel: TelemetryLevel, data?: ITelemetryData) {
+	private _log(eventName: string, eventLevel: TelemetryLevel, data?: ITelemetryData) {
 	// 	// don't send events when the user is optout
 	// 	if (this._telemetryLevel < eventLevel) {
 	// 		return;
@@ -251,3 +251,4 @@ configurationRegistry.registerConfiguration({
 		}
 	},
 });
+
