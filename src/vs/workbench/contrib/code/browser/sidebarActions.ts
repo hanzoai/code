@@ -303,11 +303,11 @@ registerAction2(class extends Action2 {
 // 			addTabSwitchListeners(editor)
 // 		}
 
-		// initialize current editors + any new editors
-		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)
-		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
-	}
-}
+// 		// initialize current editors + any new editors
+// 		for (let editor of this._editorService.listCodeEditors()) initializeEditor(editor)
+// 		this._register(this._editorService.onCodeEditorAdd(editor => { initializeEditor(editor) }))
+// 	}
+// }
 
 
 class TabSwitchContribution extends Disposable implements IWorkbenchContribution {
@@ -348,3 +348,4 @@ class TabSwitchContribution extends Disposable implements IWorkbenchContribution
 }
 
 registerWorkbenchContribution2(TabSwitchContribution.ID, TabSwitchContribution, WorkbenchPhase.BlockRestore);
+
