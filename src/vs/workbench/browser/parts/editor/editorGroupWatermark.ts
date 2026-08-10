@@ -17,12 +17,15 @@ import { editorForeground, registerColor, transparent } from '../../../../platfo
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { isRecentFolder, IWorkspacesService } from '../../../../platform/workspaces/common/workspaces.js';
 import { IHostService } from '../../../services/host/browser/host.js';
-import { CODE_OPEN_SETTINGS_ACTION_ID } from '../../../contrib/void/browser/codeSettingsPane.js';
-import { CODE_CTRL_K_ACTION_ID, CODE_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
-// import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { ILabelService, Verbosity } from '../../../../platform/label/common/label.js';
+import { ColorScheme } from '../../web.api.js';
+import { OpenFileFolderAction, OpenFolderAction } from '../../actions/workspaceActions.js';
+import { IWindowOpenable } from '../../../../platform/window/common/window.js';
+import { splitRecentLabel } from '../../../../base/common/labels.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
 
-/* eslint-disable */ // Void
-import { VOID_CTRL_K_ACTION_ID, VOID_CTRL_L_ACTION_ID } from '../../../contrib/void/browser/actionIDs.js';
+/* eslint-disable */ // Code
+import { CODE_CTRL_K_ACTION_ID, CODE_CTRL_L_ACTION_ID } from '../../../contrib/code/browser/actionIDs.js';
 import { VIEWLET_ID as REMOTE_EXPLORER_VIEWLET_ID } from '../../../contrib/remote/browser/remoteExplorer.js';
 /* eslint-enable */
 
@@ -47,15 +50,9 @@ import { VIEWLET_ID as REMOTE_EXPLORER_VIEWLET_ID } from '../../../contrib/remot
 // const startDebugging: WatermarkEntry = { text: localize('watermark.startDebugging', "Start Debugging"), id: 'workbench.action.debug.start', when: { web: ContextKeyExpr.equals('terminalProcessSupported', true) } };
 // const openSettings: WatermarkEntry = { text: localize('watermark.openSettings', "Open Settings"), id: 'workbench.action.openSettings' };
 
-// // shown when Code is emtpty
-// const noFolderEntries = [
-// 	// showCommands,
-// 	openFileNonMacOnly,
-// 	openFolderNonMacOnly,
-// 	openFileOrFolderMacOnly,
-// 	openRecent,
-// 	// newUntitledFileMacOnly
-// ];
+// const showCopilot = ContextKeyExpr.or(ContextKeyExpr.equals('chatSetupHidden', false), ContextKeyExpr.equals('chatSetupInstalled', true));
+// const openChat: WatermarkEntry = { text: localize('watermark.openChat', "Open Chat"), id: 'workbench.action.chat.open', when: { native: showCopilot, web: showCopilot } };
+// const openCopilotEdits: WatermarkEntry = { text: localize('watermark.openCopilotEdits', "Open Copilot Edits"), id: 'workbench.action.chat.openEditSession', when: { native: showCopilot, web: showCopilot } };
 
 // const emptyWindowEntries: WatermarkEntry[] = coalesce([
 // 	showCommands,
@@ -194,11 +191,11 @@ export class EditorGroupWatermark extends Disposable {
 				buttonContainer.style.alignItems = 'center'; // Center the buttons horizontally
 				buttonContainer.style.gap = '8px'; // Reduce gap between buttons from 16px to 8px
 				buttonContainer.style.marginBottom = '16px';
-				voidIconBox.appendChild(buttonContainer);
+				codeIconBox.appendChild(buttonContainer);
 
 				// Open a folder
 				const openFolderButton = h('button')
-				openFolderButton.root.classList.add('code-watermark-button')
+				openFolderButton.root.classList.add('code-openfolder-button')
 				openFolderButton.root.style.display = 'block'
 				openFolderButton.root.style.width = '124px' // Set width to 124px as requested
 				openFolderButton.root.textContent = 'Open Folder'
@@ -210,7 +207,19 @@ export class EditorGroupWatermark extends Disposable {
 					// 	this.commandService.executeCommand(isMacintosh ? 'workbench.action.files.openFileFolder' : 'workbench.action.files.openFolder');
 					// }
 				}
-				codeIconBox.appendChild(openFolderButton.root);
+				buttonContainer.appendChild(openFolderButton.root);
+
+				// Open SSH button
+				const openSSHButton = h('button')
+				openSSHButton.root.classList.add('code-openssh-button')
+				openSSHButton.root.style.display = 'block'
+				openSSHButton.root.style.backgroundColor = '#5a5a5a' // Made darker than the default gray
+				openSSHButton.root.style.width = '124px' // Set width to 124px as requested
+				openSSHButton.root.textContent = 'Open SSH'
+				openSSHButton.root.onclick = () => {
+					this.viewsService.openViewContainer(REMOTE_EXPLORER_VIEWLET_ID);
+				}
+				buttonContainer.appendChild(openSSHButton.root);
 
 
 				// Recents
@@ -296,21 +305,21 @@ export class EditorGroupWatermark extends Disposable {
 					label2.set(keys2);
 				this.currentDisposables.add(label2);
 
-				const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
-				const button3 = append(recentsBox, $('button'));
-				button3.textContent = 'Code Settings'
-				button3.style.display = 'block'
-				button3.style.marginLeft = 'auto'
-				button3.style.marginRight = 'auto'
-				button3.classList.add('code-settings-watermark-button')
+				// const keys3 = this.keybindingService.lookupKeybinding('workbench.action.openGlobalKeybindings');
+				// const button3 = append(recentsBox, $('button'));
+				// button3.textContent = `Code Settings`
+				// button3.style.display = 'block'
+				// button3.style.marginLeft = 'auto'
+				// button3.style.marginRight = 'auto'
+				// button3.classList.add('code-settings-watermark-button')
 
-				const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
-				if (keys3)
-					label3.set(keys3);
-				button3.onclick = () => {
-					this.commandService.executeCommand(CODE_OPEN_SETTINGS_ACTION_ID)
-				}
-				this.currentDisposables.add(label3);
+				// const label3 = new KeybindingLabel(button3, OS, { renderUnboundKeybindings: true, ...defaultKeybindingLabelStyles });
+				// if (keys3)
+				// 	label3.set(keys3);
+				// button3.onclick = () => {
+				// 	this.commandService.executeCommand(CODE_OPEN_SETTINGS_ACTION_ID)
+				// }
+				// this.currentDisposables.add(label3);
 
 			}
 

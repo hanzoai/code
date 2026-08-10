@@ -312,51 +312,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'workbench.action.closePanel',
-			title: localize2('closePanel', 'Hide Panel'),
-			category: Categories.View,
-			icon: closeIcon,
-			menu: [{
-				id: MenuId.CommandPalette,
-				when: PanelVisibleContext,
-			}, {
-				id: MenuId.PanelTitle,
-				group: 'navigation',
-				order: 2
-			}]
-		});
-	}
-	run(accessor: ServicesAccessor) {
-		accessor.get(IWorkbenchLayoutService).setPartHidden(true, Parts.PANEL_PART);
-	}
-});
-
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'workbench.action.closeAuxiliaryBar',
-			title: localize2('closeSecondarySideBar', 'Hide Code Side Bar'),
-			category: Categories.View,
-			icon: closeIcon,
-			menu: [{
-				id: MenuId.CommandPalette,
-				when: AuxiliaryBarVisibleContext,
-			}, {
-				id: MenuId.AuxiliaryBarTitle,
-				group: 'navigation',
-				order: 2,
-				when: ContextKeyExpr.notEquals(`config.${LayoutSettings.ACTIVITY_BAR_LOCATION}`, ActivityBarPosition.TOP)
-			}]
-		});
-	}
-	run(accessor: ServicesAccessor) {
-		accessor.get(IWorkbenchLayoutService).setPartHidden(true, Parts.AUXILIARYBAR_PART);
-	}
-});
-
 MenuRegistry.appendMenuItems([
 	{
 		id: MenuId.LayoutControlMenu,
@@ -429,7 +384,7 @@ export class MovePanelToSecondarySideBarAction extends MoveViewsBetweenPanelsAct
 registerAction2(MovePanelToSidePanelAction);
 registerAction2(MovePanelToSecondarySideBarAction);
 
-// --- Move Void Side Bar Views To Panel
+// --- Move Code Side Bar Views To Panel
 
 class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	static readonly ID = 'workbench.action.moveSidePanelToPanel';
@@ -437,7 +392,7 @@ class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSidePanelToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', "Move Side Bar Views To Panel"), // Code - this seemed to have a typo before
+			title: localize2('moveSidePanelToPanel', "Move Code Side Bar Views To Panel"),
 			category: Categories.View,
 			f1: false
 		});

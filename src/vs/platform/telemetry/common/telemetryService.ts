@@ -121,12 +121,11 @@ export class TelemetryService implements ITelemetryService {
 		this._disposables.dispose();
 	}
 
-	// Code commented this out
 	private _log(eventName: string, eventLevel: TelemetryLevel, data?: ITelemetryData) {
-	// 	// don't send events when the user is optout
-	// 	if (this._telemetryLevel < eventLevel) {
-	// 		return;
-	// 	}
+		// don't send events when the user is optout
+		if (this._telemetryLevel < eventLevel) {
+			return;
+		}
 
 		// add experiment properties
 		data = mixin(data, this._experimentProperties);
@@ -150,18 +149,16 @@ export class TelemetryService implements ITelemetryService {
 	}
 
 	publicLogError(errorEventName: string, data?: ITelemetryData) {
-		// Code commented this out
-		// if (!this._sendErrorTelemetry) {
-		// 	return;
-		// }
+		if (!this._sendErrorTelemetry) {
+			return;
+		}
 
 		// Send error event and anonymize paths
 		this._log(errorEventName, TelemetryLevel.ERROR, data);
 	}
 
 	publicLogError2<E extends ClassifiedEvent<OmitMetadata<T>> = never, T extends IGDPRProperty = never>(eventName: string, data?: StrictPropertyCheck<T, E>) {
-		// Code commented this out
-		// this.publicLogError(eventName, data as ITelemetryData);
+		this.publicLogError(eventName, data as ITelemetryData);
 	}
 }
 
@@ -173,7 +170,7 @@ function getTelemetryLevelSettingDescription(): string {
 	const restartString = !isWeb ? localize('telemetry.restart', 'Microsoft says \"Some third party extensions might not respect this setting. Consult the specific extension\'s documentation to be sure. A full restart of the application is necessary for crash reporting changes to take effect.\"') : '';
 
 
-	// Void removed these
+	// Code removed these
 	// const crashReportsHeader = localize('telemetry.crashReports', "Crash Reports");
 	// const errorsHeader = localize('telemetry.errors', "Error Telemetry");
 	// const usageHeader = localize('telemetry.usage', "Usage Data");
@@ -194,7 +191,7 @@ ${telemetryText}
 
 ${restartString}
 
-Void separately records basic usage like the number of messages people are sending. If you'd like to disable Void metrics, you may do so in Void's Settings.
+Code separately records basic usage like the number of messages people are sending. If you'd like to disable Code metrics, you may do so in Code's Settings.
 `;
 
 	return telemetryDescription;
@@ -251,4 +248,3 @@ configurationRegistry.registerConfiguration({
 		}
 	},
 });
-

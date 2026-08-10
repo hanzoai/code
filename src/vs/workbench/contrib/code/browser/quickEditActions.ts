@@ -42,6 +42,7 @@ registerAction2(class extends Action2 {
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.KeyK,
 				weight: KeybindingWeight.CodeExtension,
+				when: ContextKeyExpr.deserialize('editorFocus && !terminalFocus'),
 			}
 		});
 	}

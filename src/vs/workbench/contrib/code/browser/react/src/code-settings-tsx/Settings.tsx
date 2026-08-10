@@ -3,15 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { InputBox } from '../../../../../../../base/browser/ui/inputbox/inputBox.js'
-import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, CodeModelInfo, globalSettingNames, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, defaultProviderSettings, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName } from '../../../../../../../platform/void/common/codeSettingsTypes.js'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'; // Added useRef import just in case it was missed, though likely already present
+import { ProviderName, SettingName, displayInfoOfSettingName, providerNames, CodeStatefulModelInfo, customSettingNamesOfProvider, RefreshableProviderName, refreshableProviderNames, displayInfoOfProviderName, nonlocalProviderNames, localProviderNames, GlobalSettingName, featureNames, displayInfoOfFeatureName, isProviderNameDisabled, FeatureName, hasDownloadButtonsOnModelsProviderNames, subTextMdOfProviderName } from '../../../../common/codeSettingsTypes.js'
 import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
-import { CodeButton, CodeCheckBox, CodeCustomSelectBox, CodeInputBox, CodeInputBox2, CodeSwitch } from '../util/inputs.js'
-import { useAccessor, useIsDark, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
-import { X, RefreshCw, Loader2, Check, MoveRight } from 'lucide-react'
-import { useScrollbarStyles } from '../util/useScrollbarStyles.js'
-import { isWindows, isLinux, isMacintosh } from '../../../../../../../base/common/platform.js'
+import { CodeButtonBgDarken, CodeCustomDropdownBox, CodeInputBox2, CodeSimpleInputBox, CodeSwitch } from '../util/inputs.js'
+import { useAccessor, useIsDark, useIsOptedOut, useRefreshModelListener, useRefreshModelState, useSettingsState } from '../util/services.js'
+import { X, RefreshCw, Loader2, Check, Asterisk, Plus } from 'lucide-react'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { ChatMarkdownRender } from '../markdown/ChatMarkdownRender.js'
@@ -36,10 +33,11 @@ type Tab =
 	| 'general'
 	| 'all';
 
-	return <div className='flex items-center text-code-fg-3 mb-1 px-3 rounded-sm overflow-hidden gap-2 hover:bg-black/10 dark:hover:bg-gray-300/10'>
-		<button className='flex items-center' disabled={disabled} onClick={onClick}>
-			{icon}
-		</button>
+
+const ButtonLeftTextRightOption = ({ text, leftButton }: { text: string, leftButton?: React.ReactNode }) => {
+
+	return <div className='flex items-center text-void-fg-3 px-3 py-0.5 rounded-sm overflow-hidden gap-2'>
+		{leftButton ? leftButton : null}
 		<span>
 			{text}
 		</span>
@@ -117,8 +115,9 @@ const RefreshableModels = () => {
 export const AnimatedCheckmarkButton = ({ text, className }: { text?: string, className?: string }) => {
 	const [dashOffset, setDashOffset] = useState(40);
 
-	const accessor = useAccessor()
-	const settingsStateService = accessor.get('ICodeSettingsService')
+	useEffect(() => {
+		const startTime = performance.now();
+		const duration = 500; // 500ms animation
 
 		const animate = (currentTime: number) => {
 			const elapsed = currentTime - startTime;
@@ -132,62 +131,9 @@ export const AnimatedCheckmarkButton = ({ text, className }: { text?: string, cl
 			}
 		};
 
-	const [errorString, setErrorString] = useState('')
-
-
-	return <>
-		<div className='flex items-center gap-4'>
-
-			{/* provider */}
-			<CodeCustomSelectBox
-				options={providerNames}
-				selectedOption={providerName}
-				onChangeOption={(pn) => setProviderName(pn)}
-				getOptionDisplayName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
-				getOptionDropdownName={(pn) => pn ? displayInfoOfProviderName(pn).title : '(null)'}
-				getOptionsEqual={(a, b) => a === b}
-				className={`max-w-44 w-full border border-code-border-2 bg-code-bg-1 text-code-fg-3 text-root
-					py-[4px] px-[6px]
-				`}
-				arrowTouchesText={false}
-			/>
-			{/* <_CodeSelectBox
-					onCreateInstance={useCallback(() => { providerNameRef.current = providerOptions[0].value }, [providerOptions])} // initialize state
-					onChangeSelection={useCallback((providerName: ProviderName) => { providerNameRef.current = providerName }, [])}
-					options={providerOptions}
-				/> */}
-
-			{/* model */}
-			<div className='max-w-44 w-full border border-code-border-2 bg-code-bg-1 text-code-fg-3 text-root'>
-				<CodeInputBox2
-					placeholder='Model Name'
-					className='mt-[2px] px-[6px] h-full w-full'
-					ref={modelNameRef}
-					multiline={false}
-				/>
-			</div>
-
-			{/* button */}
-			<div className='max-w-40'>
-				<CodeButton onClick={() => {
-					const modelName = modelNameRef.current?.value
-
-					if (providerName === null) {
-						setErrorString('Please select a provider.')
-						return
-					}
-					if (!modelName) {
-						setErrorString('Please enter a model name.')
-						return
-					}
-					// if model already exists here
-					if (settingsState.settingsOfProvider[providerName].models.find(m => m.modelName === modelName)) {
-						setErrorString(`This model already exists under ${providerName}.`)
-						return
-					}
-
-					settingsStateService.addModel(providerName, modelName)
-					onSubmit()
+		const animationId = requestAnimationFrame(animate);
+		return () => cancelAnimationFrame(animationId);
+	}, []);
 
 	return <div
 		className={`flex items-center gap-1.5 w-fit
@@ -205,26 +151,9 @@ export const AnimatedCheckmarkButton = ({ text, className }: { text?: string, cl
 					strokeDasharray: 40,
 					strokeDashoffset: dashOffset
 				}}
-				>Add model</CodeButton>
-			</div>
-
-			{!errorString ? null : <div className='text-red-500 truncate whitespace-nowrap'>
-				{errorString}
-			</div>}
-		</div>
-
-	</>
-
-}
-
-const AddModelMenuFull = () => {
-	const [open, setOpen] = useState(false)
-
-	return <div className='hover:bg-black/10 dark:hover:bg-gray-300/10 py-1 my-4 pb-1 px-3 rounded-sm overflow-hidden '>
-		{open ?
-			<AddModelMenu onSubmit={() => { setOpen(false) }} />
-			: <CodeButton onClick={() => setOpen(true)}>Add Model</CodeButton>
-		}
+			/>
+		</svg>
+		{text}
 	</div>
 }
 
@@ -255,7 +184,7 @@ const ConfirmButton = ({ children, onConfirm, className }: { children: React.Rea
 	}, [confirm]);
 	return (
 		<div ref={ref} className={`inline-block`}>
-			<VoidButtonBgDarken className={className} onClick={() => {
+			<CodeButtonBgDarken className={className} onClick={() => {
 				if (!confirm) {
 					setConfirm(true);
 				} else {
@@ -264,7 +193,7 @@ const ConfirmButton = ({ children, onConfirm, className }: { children: React.Rea
 				}
 			}}>
 				{confirm ? `Confirm Reset` : children}
-			</VoidButtonBgDarken>
+			</CodeButtonBgDarken>
 		</div>
 	);
 };
@@ -289,6 +218,8 @@ const SimpleModelSettingsDialog = ({
 
 	const { modelName, providerName, type } = modelInfo;
 	const accessor = useAccessor()
+	const settingsState = useSettingsState()
+	const mouseDownInsideModal = useRef(false); // Ref to track mousedown origin
 	const settingsStateService = accessor.get('ICodeSettingsService')
 
 	// current overrides and defaults
@@ -352,7 +283,7 @@ const SimpleModelSettingsDialog = ({
 		onClose();
 	};
 
-	const sourcecodeOverridesLink = `https://github.com/voideditor/void/blob/2e5ecb291d33afbe4565921664fb7e183189c1c5/src/vs/workbench/contrib/void/common/modelCapabilities.ts#L146-L172`
+	const sourcecodeOverridesLink = `https://github.com/voideditor/void/blob/2e5ecb291d33afbe4565921664fb7e183189c1c5/src/vs/workbench/contrib/code/common/modelCapabilities.ts#L146-L172`
 
 	return (
 		<div // Backdrop
@@ -390,16 +321,16 @@ const SimpleModelSettingsDialog = ({
 
 				{/* Display model recognition status */}
 				<div className="text-sm text-void-fg-3 mb-4">
-					{type === 'default' ? `${modelName} comes packaged with Void, so you shouldn't need to change these settings.`
+					{type === 'default' ? `${modelName} comes packaged with Code, so you shouldn't need to change these settings.`
 						: isUnrecognizedModel
-							? `Model not recognized by Void.`
-							: `Void recognizes ${modelName} ("${recognizedModelName}").`}
+							? `Model not recognized by Code.`
+							: `Code recognizes ${modelName} ("${recognizedModelName}").`}
 				</div>
 
 
 				{/* override toggle */}
 				<div className="flex items-center gap-2 mb-4">
-					<VoidSwitch size='xs' value={overrideEnabled} onChange={setOverrideEnabled} />
+					<CodeSwitch size='xs' value={overrideEnabled} onChange={setOverrideEnabled} />
 					<span className="text-void-fg-3 text-sm">Override model defaults</span>
 				</div>
 
@@ -422,15 +353,15 @@ const SimpleModelSettingsDialog = ({
 
 
 				<div className="flex justify-end gap-2 mt-4">
-					<VoidButtonBgDarken onClick={onClose} className="px-3 py-1">
+					<CodeButtonBgDarken onClick={onClose} className="px-3 py-1">
 						Cancel
-					</VoidButtonBgDarken>
-					<VoidButtonBgDarken
+					</CodeButtonBgDarken>
+					<CodeButtonBgDarken
 						onClick={onSave}
 						className="px-3 py-1 bg-[#0e70c0] text-white"
 					>
 						Save
-					</VoidButtonBgDarken>
+					</CodeButtonBgDarken>
 				</div>
 			</div>
 		</div>
@@ -442,7 +373,7 @@ const SimpleModelSettingsDialog = ({
 
 export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderName[] }) => {
 	const accessor = useAccessor()
-	const settingsStateService = accessor.get('IVoidSettingsService')
+	const settingsStateService = accessor.get('ICodeSettingsService')
 	const settingsState = useSettingsState()
 
 	// State to track which model's settings dialog is open
@@ -460,8 +391,12 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 	const [errorString, setErrorString] = useState('');
 
 	// a dump of all the enabled providers' models
-	const modelDump: (CodeModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
-	for (let providerName of providerNames) {
+	const modelDump: (CodeStatefulModelInfo & { providerName: ProviderName, providerEnabled: boolean })[] = []
+
+	// Use either filtered providers or all providers
+	const providersToShow = filteredProviders || providerNames;
+
+	for (let providerName of providersToShow) {
 		const providerSettings = settingsState.settingsOfProvider[providerName]
 		// if (!providerSettings.enabled) continue
 		modelDump.push(...providerSettings.models.map(model => ({ ...model, providerName, providerEnabled: !!providerSettings._didFillInProviderSettings })))
@@ -519,9 +454,9 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 
 			const detailAboutModel = type === 'autodetected' ?
-				<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Detected locally' />
+				<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='code-tooltip' data-tooltip-place='right' data-tooltip-content='Detected locally' />
 				: type === 'custom' ?
-					<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='void-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
+					<Asterisk size={14} className="inline-block align-text-top brightness-115 stroke-[2] text-[#0e70c0]" data-tooltip-id='code-tooltip' data-tooltip-place='right' data-tooltip-content='Custom model' />
 					: undefined
 
 			const hasOverrides = !!settingsState.overridesOfModel?.[providerName]?.[modelName]
@@ -536,15 +471,36 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 					<span className='w-fit max-w-[400px] truncate'>{modelName}</span>
 				</div>
 
+				{/* right part is anything that fits */}
+				<div className="flex items-center gap-2 w-fit">
+
+					{/* Advanced Settings button (gear). Hide entirely when provider/model disabled. */}
+					{disabled ? null : (
+						<div className="w-5 flex items-center justify-center">
+							<button
+								onClick={() => { setOpenSettingsModel({ modelName, providerName, type }) }}
+								data-tooltip-id='code-tooltip'
+								data-tooltip-place='right'
+								data-tooltip-content='Advanced Settings'
+								className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+							>
+								<Plus size={12} className="text-void-fg-3 opacity-50" />
+							</button>
+						</div>
+					)}
+
+					{/* Blue star */}
+					{detailAboutModel}
+
+
+					{/* Switch */}
 					<CodeSwitch
-						value={disabled ? false : !isHidden}
-						onChange={() => {
-							settingsStateService.toggleModelHidden(providerName, modelName)
-						}}
+						value={value}
+						onChange={() => { settingsStateService.toggleModelHidden(providerName, modelName); }}
 						disabled={disabled}
 						size='sm'
 
-						data-tooltip-id='void-tooltip'
+						data-tooltip-id='code-tooltip'
 						data-tooltip-place='right'
 						data-tooltip-content={tooltipName}
 					/>
@@ -553,7 +509,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 					<div className={`w-5 flex items-center justify-center`}>
 						{type === 'default' || type === 'autodetected' ? null : <button
 							onClick={() => { settingsStateService.deleteModel(providerName, modelName); }}
-							data-tooltip-id='void-tooltip'
+							data-tooltip-id='code-tooltip'
 							data-tooltip-place='right'
 							data-tooltip-content='Delete'
 							className={`${hasOverrides ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
@@ -576,7 +532,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 					{/* Provider dropdown */}
 					<ErrorBoundary>
-						<VoidCustomDropdownBox
+						<CodeCustomDropdownBox
 							options={providersToShow}
 							selectedOption={userChosenProviderName}
 							onChangeOption={(pn) => setUserChosenProviderName(pn)}
@@ -590,7 +546,7 @@ export const ModelDump = ({ filteredProviders }: { filteredProviders?: ProviderN
 
 					{/* Model name input */}
 					<ErrorBoundary>
-						<VoidSimpleInputBox
+						<CodeSimpleInputBox
 							value={modelName}
 							compact={true}
 							onChangeValue={setModelName}
@@ -660,7 +616,7 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 
 	const accessor = useAccessor()
 	const codeSettingsService = accessor.get('ICodeSettingsService')
-	const voidMetricsService = accessor.get('IMetricsService')
+	const settingsState = useSettingsState()
 
 	const settingValue = settingsState.settingsOfProvider[providerName][settingName] as string // this should always be a string in this component
 	if (typeof settingValue !== 'string') {
@@ -670,53 +626,17 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 
 	// Create a stable callback reference using useCallback with proper dependencies
 	const handleChangeValue = useCallback((newVal: string) => {
-		voidSettingsService.setSettingOfProvider(providerName, settingName, newVal)
-	}, [voidSettingsService, providerName, settingName]);
+		codeSettingsService.setSettingOfProvider(providerName, settingName, newVal)
+	}, [codeSettingsService, providerName, settingName]);
 
 	return <ErrorBoundary>
 		<div className='my-1'>
-			<CodeInputBox
-				// placeholder={`${providerTitle} ${settingTitle} (${placeholder})`}
+			<CodeSimpleInputBox
+				value={settingValue}
+				onChangeValue={handleChangeValue}
 				placeholder={`${settingTitle} (${placeholder})`}
-				onChangeText={useCallback((newVal) => {
-					if (weChangedTextRef) return
-					codeSettingsService.setSettingOfProvider(providerName, settingName, newVal)
-				}, [codeSettingsService, providerName, settingName])}
-
-				// we are responsible for setting the initial value. always sync the instance whenever there's a change to state.
-				onCreateInstance={useCallback((instance: InputBox) => {
-					const syncInstance = () => {
-						const settingsAtProvider = codeSettingsService.state.settingsOfProvider[providerName];
-						const stateVal = settingsAtProvider[settingName as SettingName]
-
-						// console.log('SYNCING TO', providerName, settingName, stateVal)
-						weChangedTextRef = true
-						instance.value = stateVal as string
-						weChangedTextRef = false
-
-						const isEverySettingPresent = Object.keys(defaultProviderSettings[providerName]).every(key => {
-							return !!settingsAtProvider[key as keyof typeof settingsAtProvider]
-						})
-
-						const shouldEnable = isEverySettingPresent && !settingsAtProvider._enabled // enable if all settings are present and not already enabled
-						const shouldDisable = !isEverySettingPresent && settingsAtProvider._enabled
-
-						if (shouldEnable) {
-							codeSettingsService.setSettingOfProvider(providerName, '_enabled', true)
-							voidMetricsService.capture('Enable Provider', { providerName })
-						}
-
-						if (shouldDisable) {
-							codeSettingsService.setSettingOfProvider(providerName, '_enabled', false)
-							voidMetricsService.capture('Disable Provider', { providerName })
-						}
-
-					}
-					syncInstance()
-					const disposable = codeSettingsService.onDidChangeState(syncInstance)
-					return [disposable]
-				}, [codeSettingsService, providerName, settingName])}
-				multiline={false}
+				passwordBlur={isPasswordField}
+				compact={true}
 			/>
 			{!subTextMd ? null : <div className='py-1 px-3 opacity-50 text-sm'>
 				{subTextMd}
@@ -725,8 +645,57 @@ const ProviderSetting = ({ providerName, settingName, subTextMd }: { providerNam
 	</ErrorBoundary>
 }
 
-const SettingsForProvider = ({ providerName }: { providerName: ProviderName }) => {
-	// const codeSettingsState = useSettingsState()
+// const OldSettingsForProvider = ({ providerName, showProviderTitle }: { providerName: ProviderName, showProviderTitle: boolean }) => {
+// 	const codeSettingsState = useSettingsState()
+
+// 	const needsModel = isProviderNameDisabled(providerName, codeSettingsState) === 'addModel'
+
+// 	// const accessor = useAccessor()
+// 	// const codeSettingsService = accessor.get('ICodeSettingsService')
+
+// 	// const { enabled } = codeSettingsState.settingsOfProvider[providerName]
+// 	const settingNames = customSettingNamesOfProvider(providerName)
+
+// 	const { title: providerTitle } = displayInfoOfProviderName(providerName)
+
+// 	return <div className='my-4'>
+
+// 		<div className='flex items-center w-full gap-4'>
+// 			{showProviderTitle && <h3 className='text-xl truncate'>{providerTitle}</h3>}
+
+// 			{/* enable provider switch */}
+// 			{/* <CodeSwitch
+// 				value={!!enabled}
+// 				onChange={
+// 					useCallback(() => {
+// 						const enabledRef = codeSettingsService.state.settingsOfProvider[providerName].enabled
+// 						codeSettingsService.setSettingOfProvider(providerName, 'enabled', !enabledRef)
+// 					}, [codeSettingsService, providerName])}
+// 				size='sm+'
+// 			/> */}
+// 		</div>
+
+// 		<div className='px-0'>
+// 			{/* settings besides models (e.g. api key) */}
+// 			{settingNames.map((settingName, i) => {
+// 				return <ProviderSetting key={settingName} providerName={providerName} settingName={settingName} />
+// 			})}
+
+// 			{needsModel ?
+// 				providerName === 'ollama' ?
+// 					<WarningBox text={`Please install an Ollama model. We'll auto-detect it.`} />
+// 					: <WarningBox text={`Please add a model for ${providerTitle} (Models section).`} />
+// 				: null}
+// 		</div>
+// 	</div >
+// }
+
+
+export const SettingsForProvider = ({ providerName, showProviderTitle, showProviderSuggestions }: { providerName: ProviderName, showProviderTitle: boolean, showProviderSuggestions: boolean }) => {
+	const codeSettingsState = useSettingsState()
+
+	const needsModel = isProviderNameDisabled(providerName, codeSettingsState) === 'addModel'
+
 	// const accessor = useAccessor()
 	// const codeSettingsService = accessor.get('ICodeSettingsService')
 
@@ -797,11 +766,15 @@ export const AutoDetectLocalModelsToggle = () => {
 	// right now this is just `enabled_autoRefreshModels`
 	const enabled = codeSettingsState.globalSettings[settingName]
 
-	return <SubtleButton
-		onClick={() => {
-			codeSettingsService.setGlobalSetting(settingName, !enabled)
-			metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: !enabled })
-		}}
+	return <ButtonLeftTextRightOption
+		leftButton={<CodeSwitch
+			size='xxs'
+			value={enabled}
+			onChange={(newVal) => {
+				codeSettingsService.setGlobalSetting(settingName, newVal)
+				metricsService.capture('Click', { action: 'Autorefresh Toggle', settingName, enabled: newVal })
+			}}
+		/>}
 		text={`Automatically detect local providers and models (${refreshableProviderNames.map(providerName => displayInfoOfProviderName(providerName).title).join(', ')}).`}
 	/>
 
@@ -815,7 +788,7 @@ export const AIInstructionsBox = () => {
 	return <CodeInputBox2
 		className='min-h-[81px] p-3 rounded-sm'
 		initValue={codeSettingsState.globalSettings.aiInstructions}
-		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Respond to all queries in French. `}
+		placeholder={`Do not change my indentation or delete my comments. When writing TS or JS, do not add ;'s. Write new code using Rust if possible. `}
 		multiline
 		onChangeText={(newText) => {
 			codeSettingsService.setGlobalSetting('aiInstructions', newText)
@@ -823,35 +796,55 @@ export const AIInstructionsBox = () => {
 	/>
 }
 
-export const FeaturesTab = () => {
-	return <>
-		<h2 className={`text-3xl mb-2`}>Local Providers</h2>
-		{/* <h3 className={`opacity-50 mb-2`}>{`Keep your data private by hosting AI locally on your computer.`}</h3> */}
-		{/* <h3 className={`opacity-50 mb-2`}>{`Instructions:`}</h3> */}
-		{/* <h3 className={`mb-2`}>{`Code can access any model that you host locally. We automatically detect your local models by default.`}</h3> */}
-		<h3 className={`text-code-fg-3 mb-2`}>{`Code can access any model that you host locally. We automatically detect your local models by default.`}</h3>
-		<div className='pl-4 opacity-50'>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender noSpace string={`1. Download [Ollama](https://ollama.com/download).`} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender noSpace string={`2. Open your terminal.`} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender noSpace string={`3. Run \`ollama run llama3.1\`. This installs Meta's llama3.1 model which is best for chat and inline edits. Requires 5GB of memory.`} /></span>
-			<span className={`text-sm mb-2 select-text`}><ChatMarkdownRender noSpace string={`4. Run \`ollama run qwen2.5-coder:1.5b\`. This installs a faster autocomplete model. Requires 1GB of memory.`} /></span>
-			<span className={`text-sm mb-2`}><ChatMarkdownRender noSpace string={`Code automatically detects locally running models and enables them.`} /></span>
-			{/* TODO we should create UI for downloading models without user going into terminal */}
+const FastApplyMethodDropdown = () => {
+	const accessor = useAccessor()
+	const codeSettingsService = accessor.get('ICodeSettingsService')
+
+	const options = useMemo(() => [true, false], [])
+
+	const onChangeOption = useCallback((newVal: boolean) => {
+		codeSettingsService.setGlobalSetting('enableFastApply', newVal)
+	}, [codeSettingsService])
+
+	return <CodeCustomDropdownBox
+		className='text-xs text-void-fg-3 bg-void-bg-1 border border-void-border-1 rounded p-0.5 px-1'
+		options={options}
+		selectedOption={codeSettingsService.state.globalSettings.enableFastApply}
+		onChangeOption={onChangeOption}
+		getOptionDisplayName={(val) => val ? 'Fast Apply' : 'Slow Apply'}
+		getOptionDropdownName={(val) => val ? 'Fast Apply' : 'Slow Apply'}
+		getOptionDropdownDetail={(val) => val ? 'Output Search/Replace blocks' : 'Rewrite whole files'}
+		getOptionsEqual={(a, b) => a === b}
+	/>
+
+}
+
+
+export const OllamaSetupInstructions = ({ sayWeAutoDetect }: { sayWeAutoDetect?: boolean }) => {
+	return <div className='prose-p:my-0 prose-ol:list-decimal prose-p:py-0 prose-ol:my-0 prose-ol:py-0 prose-span:my-0 prose-span:py-0 text-void-fg-3 text-sm list-decimal select-text'>
+		<div className=''><ChatMarkdownRender string={`Ollama Setup Instructions`} chatMessageLocation={undefined} /></div>
+		<div className=' pl-6'><ChatMarkdownRender string={`1. Download [Ollama](https://ollama.com/download).`} chatMessageLocation={undefined} /></div>
+		<div className=' pl-6'><ChatMarkdownRender string={`2. Open your terminal.`} chatMessageLocation={undefined} /></div>
+		<div
+			className='pl-6 flex items-center w-fit'
+			data-tooltip-id='code-tooltip-ollama-settings'
+		>
+			<ChatMarkdownRender string={`3. Run \`ollama pull your_model\` to install a model.`} chatMessageLocation={undefined} />
 		</div>
-		{sayWeAutoDetect && <div className=' pl-6'><ChatMarkdownRender string={`Void automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>}
+		{sayWeAutoDetect && <div className=' pl-6'><ChatMarkdownRender string={`Code automatically detects locally running models and enables them.`} chatMessageLocation={undefined} /></div>}
 	</div>
 }
 
-		<ErrorBoundary>
-			<CodeProviderSettings providerNames={localProviderNames} />
-		</ErrorBoundary>
 
-		<h2 className={`text-3xl mb-2 mt-12`}>Providers</h2>
-		<h3 className={`text-code-fg-3 mb-2`}>{`Code can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
-		{/* <h3 className={`opacity-50 mb-2`}>{`Access models like ChatGPT and Claude. We recommend using Anthropic or OpenAI as providers, or Groq as a faster alternative.`}</h3> */}
-		<ErrorBoundary>
-			<CodeProviderSettings providerNames={nonlocalProviderNames} />
-		</ErrorBoundary>
+const RedoOnboardingButton = ({ className }: { className?: string }) => {
+	const accessor = useAccessor()
+	const codeSettingsService = accessor.get('ICodeSettingsService')
+	return <div
+		className={`text-void-fg-4 flex flex-nowrap text-nowrap items-center hover:brightness-110 cursor-pointer ${className}`}
+		onClick={() => { codeSettingsService.setGlobalSetting('isOnboardingComplete', false) }}
+	>
+		See onboarding screen?
+	</div>
 
 }
 
@@ -863,22 +856,22 @@ export const FeaturesTab = () => {
 
 export const ToolApprovalTypeSwitch = ({ approvalType, size, desc }: { approvalType: ToolApprovalType, size: "xxs" | "xs" | "sm" | "sm+" | "md", desc: string }) => {
 	const accessor = useAccessor()
-	const voidSettingsService = accessor.get('IVoidSettingsService')
-	const voidSettingsState = useSettingsState()
+	const codeSettingsService = accessor.get('ICodeSettingsService')
+	const codeSettingsState = useSettingsState()
 	const metricsService = accessor.get('IMetricsService')
 
 	const onToggleAutoApprove = useCallback((approvalType: ToolApprovalType, newValue: boolean) => {
-		voidSettingsService.setGlobalSetting('autoApprove', {
-			...voidSettingsService.state.globalSettings.autoApprove,
+		codeSettingsService.setGlobalSetting('autoApprove', {
+			...codeSettingsService.state.globalSettings.autoApprove,
 			[approvalType]: newValue
 		})
 		metricsService.capture('Tool Auto-Accept Toggle', { enabled: newValue })
-	}, [voidSettingsService, metricsService])
+	}, [codeSettingsService, metricsService])
 
 	return <>
-		<VoidSwitch
+		<CodeSwitch
 			size={size}
-			value={voidSettingsState.globalSettings.autoApprove[approvalType] ?? false}
+			value={codeSettingsState.globalSettings.autoApprove[approvalType] ?? false}
 			onChange={(newVal) => onToggleAutoApprove(approvalType, newVal)}
 		/>
 		<span className="text-void-fg-3 text-xs">{desc}</span>
@@ -887,71 +880,7 @@ export const ToolApprovalTypeSwitch = ({ approvalType, size, desc }: { approvalT
 
 
 
-// https://github.com/VSCodium/vscodium/blob/master/docs/index.md#migrating-from-visual-studio-code-to-vscodium
-// https://code.visualstudio.com/docs/editor/extension-marketplace#_where-are-extensions-installed
-type TransferFilesInfo = { from: URI, to: URI }[]
-const transferTheseFilesOfOS = (os: 'mac' | 'windows' | 'linux' | null): TransferFilesInfo => {
-	if (os === null)
-		throw new Error(`One-click switch is not possible in this environment.`)
-	if (os === 'mac') {
-		const homeDir = env['HOME']
-		if (!homeDir) throw new Error(`$HOME not found`)
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, 'Library', 'Application Support', 'Code', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.code-editor', 'extensions'),
-		}]
-	}
-
-	if (os === 'linux') {
-		const homeDir = env['HOME']
-		if (!homeDir) throw new Error(`variable for $HOME location not found`)
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.config', 'Code', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), homeDir, '.code-editor', 'extensions'),
-		}]
-	}
-
-	if (os === 'windows') {
-		const appdata = env['APPDATA']
-		if (!appdata) throw new Error(`variable for %APPDATA% location not found`)
-		const userprofile = env['USERPROFILE']
-		if (!userprofile) throw new Error(`variable for %USERPROFILE% location not found`)
-
-		return [{
-			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'settings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), appdata, 'Code', 'User', 'keybindings.json'),
-		}, {
-			from: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.vscode', 'extensions'),
-			to: URI.joinPath(URI.from({ scheme: 'file' }), userprofile, '.code-editor', 'extensions'),
-		}]
-	}
-
-	throw new Error(`os '${os}' not recognized`)
-}
-
-const os = isWindows ? 'windows' : isMacintosh ? 'mac' : isLinux ? 'linux' : null
-let transferTheseFiles: TransferFilesInfo = []
-let transferError: string | null = null
-
-try { transferTheseFiles = transferTheseFilesOfOS(os) }
-catch (e) { transferError = e + '' }
-
-const OneClickSwitchButton = () => {
+export const OneClickSwitchButton = ({ fromEditor = 'VS Code', className = '' }: { fromEditor?: TransferEditorType, className?: string }) => {
 	const accessor = useAccessor()
 	const extensionTransferService = accessor.get('IExtensionTransferService')
 
@@ -978,75 +907,17 @@ const OneClickSwitchButton = () => {
 	}
 
 	return <>
-		<CodeButton disabled={state.type !== 'done'} onClick={onClick}>
-			{state.type === 'done' ? 'Transfer my Settings'
-				: state.type === 'loading' ? 'Transferring...'
-					: state.type === 'justfinished' ? 'Success!'
+		<CodeButtonBgDarken className={`max-w-48 p-4 ${className}`} disabled={transferState.type !== 'done'} onClick={onClick}>
+			{transferState.type === 'done' ? `Transfer from ${fromEditor}`
+				: transferState.type === 'loading' ? <span className='text-nowrap flex flex-nowrap'>Transferring<IconLoading /></span>
+					: transferState.type === 'justfinished' ? <AnimatedCheckmarkButton text='Settings Transferred' className='bg-none' />
 						: null
 			}
-		</CodeButton>
-		{state.type === 'done' && state.error ? <WarningBox text={state.error} /> : null}
+		</CodeButtonBgDarken>
+		{transferState.type === 'done' && transferState.error ? <WarningBox text={transferState.error} /> : null}
 	</>
 }
 
-
-const GeneralTab = () => {
-	const accessor = useAccessor()
-	const commandService = accessor.get('ICommandService')
-
-	return <>
-
-
-		<div className=''>
-			<h2 className={`text-3xl mb-2`}>One-Click Switch</h2>
-			<h4 className={`text-code-fg-3 mb-2`}>{`Transfer your settings from VS Code to Code in one click.`}</h4>
-			<OneClickSwitchButton />
-		</div>
-
-
-
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>Built-in Settings</h2>
-			<h4 className={`text-code-fg-3 mb-2`}>{`IDE settings, keyboard settings, and theme customization.`}</h4>
-
-			<div className='my-4'>
-				<CodeButton onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
-					General Settings
-				</CodeButton>
-			</div>
-			<div className='my-4'>
-				<CodeButton onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
-					Keyboard Settings
-				</CodeButton>
-			</div>
-			<div className='my-4'>
-				<CodeButton onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
-					Theme Settings
-				</CodeButton>
-			</div>
-		</div>
-
-
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>AI Instructions</h2>
-			<h4 className={`text-code-fg-3 mb-2`}>{`Instructions to include on all AI requests.`}</h4>
-			<AIInstructionsBox />
-		</div>
-
-		<div className='mt-12'>
-			<h2 className={`text-3xl mb-2`}>Model Selection</h2>
-			{featureNames.map(featureName =>
-				<div key={featureName}
-					className='mb-2'
-				>
-					<h4 className={`text-code-fg-3`}>{displayInfoOfFeatureName(featureName)}</h4>
-					<ModelDropdown featureName={featureName} />
-				</div>
-			)}
-		</div>
-
-	</>
-}
 
 // full settings
 
@@ -1055,53 +926,31 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 	const accessor = useAccessor();
 	const mcpService = accessor.get('IMCPService');
 
-	const voidSettings = useSettingsState()
-	const isOn = voidSettings.mcpUserStateOfName[name]?.isOn
+	const codeSettings = useSettingsState()
+	const isOn = codeSettings.mcpUserStateOfName[name]?.isOn
 
 	const removeUniquePrefix = (name: string) => name.split('_').slice(1).join('_')
 
-	return <div className={`@@code-scope ${isDark ? 'dark' : ''}`} style={{ height: '100%', width: '100%' }}>
-		<div ref={containerRef} className='overflow-y-auto w-full h-full px-10 py-10 select-none'>
+	return (
+		<div className="border border-void-border-2 bg-void-bg-1 py-3 px-4 rounded-sm my-2">
+			<div className="flex items-center justify-between">
+				{/* Left side - status and name */}
+				<div className="flex items-center gap-2">
+					{/* Status indicator */}
+					<div className={`w-2 h-2 rounded-full
+						${server.status === 'success' ? 'bg-green-500'
+							: server.status === 'error' ? 'bg-red-500'
+								: server.status === 'loading' ? 'bg-yellow-500'
+									: server.status === 'offline' ? 'bg-void-fg-3'
+										: ''}
+					`}></div>
 
-			<div className='max-w-5xl mx-auto'>
-
-				<h1 className='text-2xl w-full'>Code Settings</h1>
-
-				{/* separator */}
-				<div className='w-full h-[1px] my-4' />
-
-				<div className='flex items-stretch'>
-
-					{/* tabs */}
-					<div className='flex flex-col w-full max-w-32'>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'models' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
-							onClick={() => { setTab('models') }}
-						>Models</button>
-						<button className={`text-left p-1 px-3 my-0.5 rounded-sm overflow-hidden ${tab === 'general' ? 'bg-black/10 dark:bg-gray-200/10' : ''} hover:bg-black/10 hover:dark:bg-gray-200/10 active:bg-black/10 active:dark:bg-gray-200/10 `}
-							onClick={() => { setTab('general') }}
-						>General</button>
-					</div>
-
-					{/* separator */}
-					<div className='w-[1px] mx-4' />
-
-
-					{/* content */}
-					<div className='w-full min-w-[600px] overflow-auto'>
-
-						<div className={`${tab !== 'models' ? 'hidden' : ''}`}>
-							<FeaturesTab />
-						</div>
-
-						<div className={`${tab !== 'general' ? 'hidden' : ''}`}>
-							<GeneralTab />
-						</div>
-
-					</div>
+					{/* Server name */}
+					<div className="text-sm font-medium text-void-fg-1">{name}</div>
 				</div>
 
 				{/* Right side - power toggle switch */}
-				<VoidSwitch
+				<CodeSwitch
 					value={isOn ?? false}
 					size='xs'
 					disabled={server.status === 'error'}
@@ -1119,9 +968,9 @@ const MCPServerComponent = ({ name, server }: { name: string, server: MCPServer 
 									key={tool.name}
 									className="px-2 py-0.5 bg-void-bg-2 text-void-fg-3 rounded-sm text-xs"
 
-									data-tooltip-id='void-tooltip'
+									data-tooltip-id='code-tooltip'
 									data-tooltip-content={tool.description || ''}
-									data-tooltip-class-name='void-max-w-[300px]'
+									data-tooltip-class-name='code-max-w-[300px]'
 								>
 									{removeUniquePrefix(tool.name)}
 								</span>
@@ -1201,7 +1050,7 @@ export const Settings = () => {
 	const environmentService = accessor.get('IEnvironmentService')
 	const nativeHostService = accessor.get('INativeHostService')
 	const settingsState = useSettingsState()
-	const voidSettingsService = accessor.get('IVoidSettingsService')
+	const codeSettingsService = accessor.get('ICodeSettingsService')
 	const chatThreadsService = accessor.get('IChatThreadService')
 	const notificationService = accessor.get('INotificationService')
 	const mcpService = accessor.get('IMCPService')
@@ -1215,12 +1064,12 @@ export const Settings = () => {
 		if (t === 'Chats') {
 			// Export chat threads
 			dataStr = JSON.stringify(chatThreadsService.state, null, 2)
-			downloadName = 'void-chats.json'
+			downloadName = 'code-chats.json'
 		}
 		else if (t === 'Settings') {
 			// Export user settings
-			dataStr = JSON.stringify(voidSettingsService.state, null, 2)
-			downloadName = 'void-settings.json'
+			dataStr = JSON.stringify(codeSettingsService.state, null, 2)
+			downloadName = 'code-settings.json'
 		}
 		else {
 			dataStr = ''
@@ -1258,7 +1107,7 @@ export const Settings = () => {
 					chatThreadsService.dangerousSetState(json as any)
 				}
 				else if (t === 'Settings') {
-					voidSettingsService.dangerousSetState(json as any)
+					codeSettingsService.dangerousSetState(json as any)
 				}
 
 				notificationService.info(`${t} imported successfully!`)
@@ -1312,7 +1161,7 @@ export const Settings = () => {
 
 					<div className='max-w-3xl'>
 
-						<h1 className='text-2xl w-full'>{`Void's Settings`}</h1>
+						<h1 className='text-2xl w-full'>{`Code's Settings`}</h1>
 
 						<div className='w-full h-[1px] my-2' />
 
@@ -1340,13 +1189,13 @@ export const Settings = () => {
 							<div className={shouldShowTab('localProviders') ? `` : 'hidden'}>
 								<ErrorBoundary>
 									<h2 className={`text-3xl mb-2`}>Local Providers</h2>
-									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access any model that you host locally. We automatically detect your local models by default.`}</h3>
+									<h3 className={`text-void-fg-3 mb-2`}>{`Code can access any model that you host locally. We automatically detect your local models by default.`}</h3>
 
 									<div className='opacity-80 mb-4'>
 										<OllamaSetupInstructions sayWeAutoDetect={true} />
 									</div>
 
-									<VoidProviderSettings providerNames={localProviderNames} />
+									<CodeProviderSettings providerNames={localProviderNames} />
 								</ErrorBoundary>
 							</div>
 
@@ -1354,9 +1203,9 @@ export const Settings = () => {
 							<div className={shouldShowTab('providers') ? `` : 'hidden'}>
 								<ErrorBoundary>
 									<h2 className={`text-3xl mb-2`}>Main Providers</h2>
-									<h3 className={`text-void-fg-3 mb-2`}>{`Void can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
+									<h3 className={`text-void-fg-3 mb-2`}>{`Code can access models from Anthropic, OpenAI, OpenRouter, and more.`}</h3>
 
-									<VoidProviderSettings providerNames={nonlocalProviderNames} />
+									<CodeProviderSettings providerNames={nonlocalProviderNames} />
 								</ErrorBoundary>
 							</div>
 
@@ -1376,9 +1225,9 @@ export const Settings = () => {
 													</span>
 													<span
 														className='hover:brightness-110'
-														data-tooltip-id='void-tooltip'
+														data-tooltip-id='code-tooltip'
 														data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
-														data-tooltip-class-name='void-max-w-[20px]'
+														data-tooltip-class-name='code-max-w-[20px]'
 													>
 														Only works with FIM models.*
 													</span>
@@ -1388,10 +1237,10 @@ export const Settings = () => {
 													{/* Enable Switch */}
 													<ErrorBoundary>
 														<div className='flex items-center gap-x-2 my-2'>
-															<VoidSwitch
+															<CodeSwitch
 																size='xs'
 																value={settingsState.globalSettings.enableAutocomplete}
-																onChange={(newVal) => voidSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
+																onChange={(newVal) => codeSettingsService.setGlobalSetting('enableAutocomplete', newVal)}
 															/>
 															<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.enableAutocomplete ? 'Enabled' : 'Disabled'}</span>
 														</div>
@@ -1419,10 +1268,10 @@ export const Settings = () => {
 												<div className='my-2'>
 													{/* Sync to Chat Switch */}
 													<div className='flex items-center gap-x-2 my-2'>
-														<VoidSwitch
+														<CodeSwitch
 															size='xs'
 															value={settingsState.globalSettings.syncApplyToChat}
-															onChange={(newVal) => voidSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
+															onChange={(newVal) => codeSettingsService.setGlobalSetting('syncApplyToChat', newVal)}
 														/>
 														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncApplyToChat ? 'Same as Chat model' : 'Different model'}</span>
 													</div>
@@ -1467,10 +1316,10 @@ export const Settings = () => {
 												<ErrorBoundary>
 
 													<div className='flex items-center gap-x-2 my-2'>
-														<VoidSwitch
+														<CodeSwitch
 															size='xs'
 															value={settingsState.globalSettings.includeToolLintErrors}
-															onChange={(newVal) => voidSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
+															onChange={(newVal) => codeSettingsService.setGlobalSetting('includeToolLintErrors', newVal)}
 														/>
 														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.includeToolLintErrors ? 'Fix lint errors' : `Fix lint errors`}</span>
 													</div>
@@ -1479,10 +1328,10 @@ export const Settings = () => {
 												{/* Auto Accept LLM Changes Switch */}
 												<ErrorBoundary>
 													<div className='flex items-center gap-x-2 my-2'>
-														<VoidSwitch
+														<CodeSwitch
 															size='xs'
 															value={settingsState.globalSettings.autoAcceptLLMChanges}
-															onChange={(newVal) => voidSettingsService.setGlobalSetting('autoAcceptLLMChanges', newVal)}
+															onChange={(newVal) => codeSettingsService.setGlobalSetting('autoAcceptLLMChanges', newVal)}
 														/>
 														<span className='text-void-fg-3 text-xs pointer-events-none'>Auto-accept LLM changes</span>
 													</div>
@@ -1494,16 +1343,16 @@ export const Settings = () => {
 
 										<div className='w-full'>
 											<h4 className={`text-base`}>Editor</h4>
-											<div className='text-sm text-void-fg-3 mt-1'>{`Settings that control the visibility of Void suggestions in the code editor.`}</div>
+											<div className='text-sm text-void-fg-3 mt-1'>{`Settings that control the visibility of Code suggestions in the code editor.`}</div>
 
 											<div className='my-2'>
 												{/* Auto Accept Switch */}
 												<ErrorBoundary>
 													<div className='flex items-center gap-x-2 my-2'>
-														<VoidSwitch
+														<CodeSwitch
 															size='xs'
 															value={settingsState.globalSettings.showInlineSuggestions}
-															onChange={(newVal) => voidSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
+															onChange={(newVal) => codeSettingsService.setGlobalSetting('showInlineSuggestions', newVal)}
 														/>
 														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.showInlineSuggestions ? 'Show suggestions on select' : 'Show suggestions on select'}</span>
 													</div>
@@ -1521,10 +1370,10 @@ export const Settings = () => {
 												<div className='my-2'>
 													{/* Sync to Chat Switch */}
 													<div className='flex items-center gap-x-2 my-2'>
-														<VoidSwitch
+														<CodeSwitch
 															size='xs'
 															value={settingsState.globalSettings.syncSCMToChat}
-															onChange={(newVal) => voidSettingsService.setGlobalSetting('syncSCMToChat', newVal)}
+															onChange={(newVal) => codeSettingsService.setGlobalSetting('syncSCMToChat', newVal)}
 														/>
 														<span className='text-void-fg-3 text-xs pointer-events-none'>{settingsState.globalSettings.syncSCMToChat ? 'Same as Chat model' : 'Different model'}</span>
 													</div>
@@ -1547,7 +1396,7 @@ export const Settings = () => {
 								<div>
 									<ErrorBoundary>
 										<h2 className='text-3xl mb-2'>One-Click Switch</h2>
-										<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Void.`}</h4>
+										<h4 className='text-void-fg-3 mb-4'>{`Transfer your editor settings into Code.`}</h4>
 
 										<div className='flex flex-col gap-2'>
 											<OneClickSwitchButton className='w-48' fromEditor="VS Code" />
@@ -1560,18 +1409,18 @@ export const Settings = () => {
 								{/* Import/Export section */}
 								<div>
 									<h2 className='text-3xl mb-2'>Import/Export</h2>
-									<h4 className='text-void-fg-3 mb-4'>{`Transfer Void's settings and chats in and out of Void.`}</h4>
+									<h4 className='text-void-fg-3 mb-4'>{`Transfer Code's settings and chats in and out of Code.`}</h4>
 									<div className='flex flex-col gap-8'>
 										{/* Settings Subcategory */}
 										<div className='flex flex-col gap-2 max-w-48 w-full'>
 											<input key={2 * s} ref={fileInputSettingsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Settings')} />
-											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputSettingsRef.current?.click() }}>
+											<CodeButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputSettingsRef.current?.click() }}>
 												Import Settings
-											</VoidButtonBgDarken>
-											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Settings')}>
+											</CodeButtonBgDarken>
+											<CodeButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Settings')}>
 												Export Settings
-											</VoidButtonBgDarken>
-											<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { voidSettingsService.resetState(); }}>
+											</CodeButtonBgDarken>
+											<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { codeSettingsService.resetState(); }}>
 												Reset Settings
 											</ConfirmButton>
 										</div>
@@ -1579,12 +1428,12 @@ export const Settings = () => {
 										{/* Chats Subcategory */}
 										<div className='flex flex-col gap-2 max-w-48 w-full'>
 											<input key={2 * s + 1} ref={fileInputChatsRef} type='file' accept='.json' className='hidden' onChange={handleUpload('Chats')} />
-											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
+											<CodeButtonBgDarken className='px-4 py-1 w-full' onClick={() => { fileInputChatsRef.current?.click() }}>
 												Import Chats
-											</VoidButtonBgDarken>
-											<VoidButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Chats')}>
+											</CodeButtonBgDarken>
+											<CodeButtonBgDarken className='px-4 py-1 w-full' onClick={() => onDownload('Chats')}>
 												Export Chats
-											</VoidButtonBgDarken>
+											</CodeButtonBgDarken>
 											<ConfirmButton className='px-4 py-1 w-full' onConfirm={() => { chatThreadsService.resetState(); }}>
 												Reset Chats
 											</ConfirmButton>
@@ -1601,18 +1450,18 @@ export const Settings = () => {
 
 									<ErrorBoundary>
 										<div className='flex flex-col gap-2 justify-center max-w-48 w-full'>
-											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
+											<CodeButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openSettings') }}>
 												General Settings
-											</VoidButtonBgDarken>
-											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
+											</CodeButtonBgDarken>
+											<CodeButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.openGlobalKeybindings') }}>
 												Keyboard Settings
-											</VoidButtonBgDarken>
-											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
+											</CodeButtonBgDarken>
+											<CodeButtonBgDarken className='px-4 py-1' onClick={() => { commandService.executeCommand('workbench.action.selectTheme') }}>
 												Theme Settings
-											</VoidButtonBgDarken>
-											<VoidButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
+											</CodeButtonBgDarken>
+											<CodeButtonBgDarken className='px-4 py-1' onClick={() => { nativeHostService.showItemInFolder(environmentService.logsHome.fsPath) }}>
 												Open Logs
-											</VoidButtonBgDarken>
+											</CodeButtonBgDarken>
 										</div>
 									</ErrorBoundary>
 								</div>
@@ -1621,13 +1470,13 @@ export const Settings = () => {
 								{/* Metrics section */}
 								<div className='max-w-[600px]'>
 									<h2 className={`text-3xl mb-2`}>Metrics</h2>
-									<h4 className={`text-void-fg-3 mb-4`}>Very basic anonymous usage tracking helps us keep Void running smoothly. You may opt out below. Regardless of this setting, Void never sees your code, messages, or API keys.</h4>
+									<h4 className={`text-void-fg-3 mb-4`}>Very basic anonymous usage tracking helps us keep Code running smoothly. You may opt out below. Regardless of this setting, Code never sees your code, messages, or API keys.</h4>
 
 									<div className='my-2'>
 										{/* Disable All Metrics Switch */}
 										<ErrorBoundary>
 											<div className='flex items-center gap-x-2 my-2'>
-												<VoidSwitch
+												<CodeSwitch
 													size='xs'
 													value={isOptedOut}
 													onChange={(newVal) => {
@@ -1657,11 +1506,11 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 									<div className='my-4'>
 										<ErrorBoundary>
 											<div className='flex items-center gap-x-2'>
-												<VoidSwitch
+												<CodeSwitch
 													size='xs'
 													value={!!settingsState.globalSettings.disableSystemMessage}
 													onChange={(newValue) => {
-														voidSettingsService.setGlobalSetting('disableSystemMessage', newValue);
+														codeSettingsService.setGlobalSetting('disableSystemMessage', newValue);
 													}}
 												/>
 												<span className='text-void-fg-3 text-xs pointer-events-none'>
@@ -1670,7 +1519,7 @@ Alternatively, place a \`.voidrules\` file in the root of your workspace.
 											</div>
 										</ErrorBoundary>
 										<div className='text-void-fg-3 text-xs mt-1'>
-											{`When disabled, Void will not include anything in the system message except for content you specified above.`}
+											{`When disabled, Code will not include anything in the system message except for content you specified above.`}
 										</div>
 									</div>
 								</div>
@@ -1689,9 +1538,9 @@ Use Model Context Protocol to provide Agent mode with more tools.
 							`} chatMessageLocation={undefined} />
 									</h4>
 									<div className='my-2'>
-										<VoidButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
+										<CodeButtonBgDarken className='px-4 py-1 w-full max-w-48' onClick={async () => { await mcpService.revealMCPConfigFile() }}>
 											Add MCP Server
-										</VoidButtonBgDarken>
+										</CodeButtonBgDarken>
 									</div>
 
 									<ErrorBoundary>

@@ -3145,9 +3145,7 @@ export const MainContext = {
 	MainThreadMcp: createProxyIdentifier<MainThreadMcpShape>('MainThreadMcpShape'),
 	MainThreadAiRelatedInformation: createProxyIdentifier<MainThreadAiRelatedInformationShape>('MainThreadAiRelatedInformation'),
 	MainThreadAiEmbeddingVector: createProxyIdentifier<MainThreadAiEmbeddingVectorShape>('MainThreadAiEmbeddingVector'),
-
-	// Code added this:
-	MainThreadInlineDiff: createProxyIdentifier<MainThreadInlineDiffShape>('MainThreadInlineDiff'),
+	MainThreadChatStatus: createProxyIdentifier<MainThreadChatStatusShape>('MainThreadChatStatus'),
 };
 
 export const ExtHostContext = {
@@ -3218,16 +3216,5 @@ export const ExtHostContext = {
 	ExtHostTesting: createProxyIdentifier<ExtHostTestingShape>('ExtHostTesting'),
 	ExtHostTelemetry: createProxyIdentifier<ExtHostTelemetryShape>('ExtHostTelemetry'),
 	ExtHostLocalization: createProxyIdentifier<ExtHostLocalizationShape>('ExtHostLocalization'),
-
-	// Code added this:
-	ExtHostInlineDiff: createProxyIdentifier<ExtHostInlineDiffShape>('ExtHostInlineDiff'), // Code added this
+	ExtHostMcp: createProxyIdentifier<ExtHostMcpShape>('ExtHostMcp'),
 };
-
-
-// Code added these:
-export interface ExtHostInlineDiffShape {
-	$onDidDispose(handle: number): void;
-}
-export interface MainThreadInlineDiffShape {
-	$addDiff(editorId: string, originalText: string, range: IRange): void;
-}

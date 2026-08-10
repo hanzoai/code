@@ -15,10 +15,7 @@ import { IRequestService } from '../../request/common/request.js';
 import { AvailableForDownload, DisablementReason, IUpdateService, State, StateType, UpdateType } from '../common/update.js';
 
 export function createUpdateURL(platform: string, quality: string, productService: IProductService): string {
-	// return `https://code.hanzo.ai/api/update/${platform}/stable`;
-	// return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
-	// https://github.com/VSCodium/update-api
-	return `https://updates.code.hanzo.ai/api/update/${platform}/${quality}/${productService.commit}`;
+	return `${productService.updateUrl}/api/update/${platform}/${quality}/${productService.commit}`;
 }
 
 export type UpdateErrorClassification = {
@@ -108,7 +105,10 @@ export abstract class AbstractUpdateService implements IUpdateService {
 
 		this.setState(State.Idle(this.getUpdateType()));
 
-		// Code - temporarily disabled while we figure out how to do this the right way
+		if (updateMode === 'manual') {
+			this.logService.info('update#ctor - manual checks only; automatic updates are disabled by user preference');
+			return;
+		}
 
 		if (updateMode === 'start') {
 			this.logService.info('update#ctor - startup checks only; automatic updates are disabled by user preference');

@@ -9,15 +9,15 @@ import { ISearchService } from '../../../services/search/common/search.js'
 import { IEditCodeService } from './editCodeServiceInterface.js'
 import { ITerminalToolService } from './terminalToolService.js'
 import { LintErrorItem, BuiltinToolCallParams, BuiltinToolResultType, BuiltinToolName } from '../common/toolsServiceTypes.js'
-import { IVoidModelService } from '../common/voidModelService.js'
+import { ICodeModelService } from '../common/codeModelService.js'
 import { EndOfLinePreference } from '../../../../editor/common/model.js'
-import { IVoidCommandBarService } from './voidCommandBarService.js'
+import { ICodeCommandBarService } from './codeCommandBarService.js'
 import { computeDirectoryTree1Deep, IDirectoryStrService, stringifyDirectoryTree1Deep } from '../common/directoryStrService.js'
 import { IMarkerService, MarkerSeverity } from '../../../../platform/markers/common/markers.js'
 import { timeout } from '../../../../base/common/async.js'
 import { RawToolParamsObj } from '../common/sendLLMMessageTypes.js'
 import { MAX_CHILDREN_URIs_PAGE, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_BG_COMMAND_TIME, MAX_TERMINAL_INACTIVE_TIME } from '../common/prompt/prompts.js'
-import { IVoidSettingsService } from '../common/voidSettingsService.js'
+import { ICodeSettingsService } from '../common/codeSettingsService.js'
 import { generateUuid } from '../../../../base/common/uuid.js'
 
 
@@ -146,13 +146,13 @@ export class ToolsService implements IToolsService {
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@ISearchService searchService: ISearchService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@IVoidModelService voidModelService: IVoidModelService,
+		@ICodeModelService codeModelService: ICodeModelService,
 		@IEditCodeService editCodeService: IEditCodeService,
 		@ITerminalToolService private readonly terminalToolService: ITerminalToolService,
-		@IVoidCommandBarService private readonly commandBarService: IVoidCommandBarService,
+		@ICodeCommandBarService private readonly commandBarService: ICodeCommandBarService,
 		@IDirectoryStrService private readonly directoryStrService: IDirectoryStrService,
 		@IMarkerService private readonly markerService: IMarkerService,
-		@IVoidSettingsService private readonly voidSettingsService: IVoidSettingsService,
+		@ICodeSettingsService private readonly codeSettingsService: ICodeSettingsService,
 	) {
 		const queryBuilder = instantiationService.createInstance(QueryBuilder);
 
@@ -295,8 +295,8 @@ export class ToolsService implements IToolsService {
 
 		this.callTool = {
 			read_file: async ({ uri, startLine, endLine, pageNumber }) => {
-				await voidModelService.initializeModel(uri)
-				const { model } = await voidModelService.getModelSafe(uri)
+				await codeModelService.initializeModel(uri)
+				const { model } = await codeModelService.getModelSafe(uri)
 				if (model === null) { throw new Error(`No contents; File does not exist.`) }
 
 				let contents: string
@@ -370,8 +370,8 @@ export class ToolsService implements IToolsService {
 				return { result: { queryStr, uris, hasNextPage } }
 			},
 			search_in_file: async ({ uri, query, isRegex }) => {
-				await voidModelService.initializeModel(uri);
-				const { model } = await voidModelService.getModelSafe(uri);
+				await codeModelService.initializeModel(uri);
+				const { model } = await codeModelService.getModelSafe(uri);
 				if (model === null) { throw new Error(`No contents; File does not exist.`); }
 				const contents = model.getValue(EndOfLinePreference.LF);
 				const contentOfLine = contents.split('\n');
@@ -411,7 +411,7 @@ export class ToolsService implements IToolsService {
 			},
 
 			rewrite_file: async ({ uri, newContent }) => {
-				await voidModelService.initializeModel(uri)
+				await codeModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
 					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and ask the user to resume later.`)
 				}
@@ -427,7 +427,7 @@ export class ToolsService implements IToolsService {
 			},
 
 			edit_file: async ({ uri, searchReplaceBlocks }) => {
-				await voidModelService.initializeModel(uri)
+				await codeModelService.initializeModel(uri)
 				if (this.commandBarService.getStreamState(uri) === 'streaming') {
 					throw new Error(`Another LLM is currently making changes to this file. Please stop streaming for now and ask the user to resume later.`)
 				}
@@ -492,7 +492,7 @@ export class ToolsService implements IToolsService {
 				return result.uris.map(uri => uri.fsPath).join('\n') + nextPageStr(result.hasNextPage)
 			},
 			search_in_file: (params, result) => {
-				const { model } = voidModelService.getModel(params.uri)
+				const { model } = codeModelService.getModel(params.uri)
 				if (!model) return '<Error getting string of result>'
 				const lines = result.lines.map(n => {
 					const lineContent = model.getValueInRange({ startLineNumber: n, startColumn: 1, endLineNumber: n, endColumn: Number.MAX_SAFE_INTEGER }, EndOfLinePreference.LF)
@@ -514,7 +514,7 @@ export class ToolsService implements IToolsService {
 			},
 			edit_file: (params, result) => {
 				const lintErrsString = (
-					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
+					this.codeSettingsService.state.globalSettings.includeToolLintErrors ?
 						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`
 							: ` No lint errors found.`)
 						: '')
@@ -523,7 +523,7 @@ export class ToolsService implements IToolsService {
 			},
 			rewrite_file: (params, result) => {
 				const lintErrsString = (
-					this.voidSettingsService.state.globalSettings.includeToolLintErrors ?
+					this.codeSettingsService.state.globalSettings.includeToolLintErrors ?
 						(result.lintErrors ? ` Lint errors found after change:\n${stringifyLintErrors(result.lintErrors)}.\nIf this is related to a change made while calling this tool, you might want to fix the error.`
 							: ` No lint errors found.`)
 						: '')
@@ -538,7 +538,7 @@ export class ToolsService implements IToolsService {
 				}
 				// normal command
 				if (resolveReason.type === 'timeout') {
-					return `${result_}\nTerminal command ran, but was automatically killed by Void after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity and did not finish successfully. To try with more time, open a persistent terminal and run the command there.`
+					return `${result_}\nTerminal command ran, but was automatically killed by Code after ${MAX_TERMINAL_INACTIVE_TIME}s of inactivity and did not finish successfully. To try with more time, open a persistent terminal and run the command there.`
 				}
 				throw new Error(`Unexpected internal error: Terminal command did not resolve with a valid reason.`)
 			},

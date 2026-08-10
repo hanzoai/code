@@ -33,7 +33,7 @@ registerAction2(class extends Action2 {
 			title: localize2('dummy', 'dummy: Init'),
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.Digit0,
-				weight: KeybindingWeight.VoidExtension,
+				weight: KeybindingWeight.CodeExtension,
 			}
 		});
 	}

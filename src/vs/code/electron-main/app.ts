@@ -123,11 +123,16 @@ import { IWebContentExtractorService } from '../../platform/webContentExtractor/
 import { NativeWebContentExtractorService } from '../../platform/webContentExtractor/electron-main/webContentExtractorService.js';
 import ErrorTelemetry from '../../platform/telemetry/electron-main/errorTelemetry.js';
 
-import { LLMMessageChannel } from '../../platform/void/electron-main/llmMessageChannel.js';
-import { IMetricsService } from '../../platform/void/common/metricsService.js';
-import { MetricsMainService } from '../../platform/void/electron-main/metricsMainService.js';
-import { CodeMainUpdateService } from '../../platform/void/electron-main/codeUpdateMainService.js';
-import { ICodeUpdateService } from '../../platform/void/common/codeUpdateService.js';
+// in theory this is not allowed
+// ignore the eslint errors below
+import { IMetricsService } from '../../workbench/contrib/code/common/metricsService.js';
+import { ICodeUpdateService } from '../../workbench/contrib/code/common/codeUpdateService.js';
+import { MetricsMainService } from '../../workbench/contrib/code/electron-main/metricsMainService.js';
+import { CodeMainUpdateService } from '../../workbench/contrib/code/electron-main/codeUpdateMainService.js';
+import { LLMMessageChannel } from '../../workbench/contrib/code/electron-main/sendLLMMessageChannel.js';
+import { CodeSCMService } from '../../workbench/contrib/code/electron-main/codeSCMMainService.js';
+import { ICodeSCMService } from '../../workbench/contrib/code/common/codeSCMTypes.js';
+import { MCPChannel } from '../../workbench/contrib/code/electron-main/mcpChannel.js';
 /**
  * The main VS Code application. There will only ever be one instance,
  * even if the user starts many instances (e.g. from the command line).
@@ -522,35 +527,6 @@ export class CodeApplication extends Disposable {
 		});
 
 		//#endregion
-
-		// //#region Code IPC
-		// validatedIpcMain.handle('vscode:sendLLMMessage', async (event, data) => {
-		// 	try {
-		// 		await this.sendLLMMessage(data);
-		// 	} catch (error) {
-		// 		console.error('Error sending LLM message:', error);
-		// 	}
-		// });
-		// //#endregion
-	}
-
-	private onUnexpectedError(error: Error): void {
-		if (error) {
-
-			// take only the message and stack property
-			const friendlyError = {
-				message: `[uncaught exception in main]: ${error.message}`,
-				stack: error.stack
-			};
-
-			// handle on client side
-			this.windowsMainService?.sendToFocused('vscode:reportError', JSON.stringify(friendlyError));
-		}
-
-		this.logService.error(`[uncaught exception in main]: ${error}`);
-		if (error.stack) {
-			this.logService.error(error.stack);
-		}
 	}
 
 	async startup(): Promise<void> {
@@ -1128,6 +1104,7 @@ export class CodeApplication extends Disposable {
 		// Code main process services (required for services with a channel for comm between browser and electron-main (node))
 		services.set(IMetricsService, new SyncDescriptor(MetricsMainService, undefined, false));
 		services.set(ICodeUpdateService, new SyncDescriptor(CodeMainUpdateService, undefined, false));
+		services.set(ICodeSCMService, new SyncDescriptor(CodeSCMService, undefined, false));
 
 		// Default Extensions Profile Init
 		services.set(IExtensionsProfileScannerService, new SyncDescriptor(ExtensionsProfileScannerService, undefined, true));
@@ -1266,8 +1243,16 @@ export class CodeApplication extends Disposable {
 		const codeUpdatesChannel = ProxyChannel.fromService(accessor.get(ICodeUpdateService), disposables);
 		mainProcessElectronServer.registerChannel('code-channel-update', codeUpdatesChannel);
 
-		const llmMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
-		mainProcessElectronServer.registerChannel('code-channel-llmMessageService', llmMessageChannel);
+		const sendLLMMessageChannel = new LLMMessageChannel(accessor.get(IMetricsService));
+		mainProcessElectronServer.registerChannel('code-channel-llmMessage', sendLLMMessageChannel);
+
+		// Code added this
+		const codeSCMChannel = ProxyChannel.fromService(accessor.get(ICodeSCMService), disposables);
+		mainProcessElectronServer.registerChannel('code-channel-scm', codeSCMChannel);
+
+		// Code added this
+		const mcpChannel = new MCPChannel();
+		mainProcessElectronServer.registerChannel('code-channel-mcp', mcpChannel);
 
 		// Extension Host Debug Broadcasting
 		const electronExtensionHostDebugBroadcastChannel = new ElectronExtensionHostDebugBroadcastChannel(accessor.get(IWindowsMainService));

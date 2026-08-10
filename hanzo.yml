@@ -1,6 +1,11 @@
 # This fork has had no build gate at all — .github/workflows holds only
-# triage.yml. `npm ci && npm run compile` is the repo's real build (gulp over
-# the whole workbench plus every bundled extension), so it is what runs.
+# triage.yml. The repo's real build is `npm ci && npm run buildreact && npm run
+# compile`, the order HOW_TO_CONTRIBUTE.md gives, so it is what runs.
+#
+# buildreact is load-bearing, not a convenience: it bundles the sidebar, settings
+# and quick-edit React roots into src/vs/workbench/contrib/code/browser/react/out,
+# which is generated rather than committed. The workbench imports its mount
+# functions from there, so without it compile cannot resolve them.
 #
 # The apt line is not scaffolding: on Linux the postinstall step compiles
 # native-keymap, node-pty and keytar, which need the X11/kerberos/libsecret
@@ -9,4 +14,4 @@
 # reusable runs gates under `bash -c`, with no set -e of its own.
 test:
   - name: build
-    run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential g++ python3 libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev && npm ci && npm run compile
+    run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential g++ python3 libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev && npm ci && npm run buildreact && npm run compile

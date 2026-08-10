@@ -678,7 +678,7 @@ const defaultChat = {
 };
 
 // // Add next to the command center if command center is disabled
-// Void commented this out with /* */ - copilot head
+// Code commented this out with /* */ - copilot head
 /* MenuRegistry.appendMenuItem(MenuId.CommandCenter, {
 	submenu: MenuId.ChatTitleBarMenu,
 	title: localize('title4', "Copilot"),

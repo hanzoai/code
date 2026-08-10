@@ -12,12 +12,8 @@ import './browser/workbench.contribution.js';
 
 //#endregion
 
-
-
 //#region --- Code
-// Code added this:
-import './contrib/void/browser/void.contribution.js';
-import '../platform/void/browser/void.contribution.js';
+import './contrib/code/browser/code.contribution.js'; // Code added this
 //#endregion
 
 //#region --- workbench actions
@@ -196,7 +192,7 @@ import './contrib/notebook/browser/notebook.contribution.js';
 import './contrib/speech/browser/speech.contribution.js';
 
 // Chat
-// Void - this is still registered to avoid console errors, we just commented it out in chatParticipant.contribution.ts
+// Code - this is still registered to avoid console errors, we just commented it out in chatParticipant.contribution.ts
 import './contrib/chat/browser/chat.contribution.js';
 import './contrib/inlineChat/browser/inlineChat.contribution.js';
 import './contrib/mcp/browser/mcp.contribution.js';
@@ -332,7 +328,8 @@ import './contrib/surveys/browser/nps.contribution.js';
 import './contrib/surveys/browser/languageSurveys.contribution.js';
 
 // Welcome
-// import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js'; // Code commented this out (removes Welcome page on start)
+// Code commented this out
+// import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js';
 import './contrib/welcomeWalkthrough/browser/walkThrough.contribution.js';
 import './contrib/welcomeViews/common/viewsWelcome.contribution.js';
 import './contrib/welcomeViews/common/newFile.contribution.js';

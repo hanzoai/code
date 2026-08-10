@@ -44,7 +44,7 @@ import { ChatViewId } from './chat.js';
 
 // --- Chat Container &  View Registration
 
-// Void commented this out
+// Code commented this out
 // const chatViewContainer: ViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 // 	id: CHAT_SIDEBAR_PANEL_ID,
 // 	title: localize2('chat.viewContainer.label', "Chat"),
@@ -86,7 +86,7 @@ import { ChatViewId } from './chat.js';
 // Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews(chatViewDescriptor, chatViewContainer);
 
 // --- Edits Container &  View Registration
-// Void commented this out
+// Code commented this out
 
 // const editsViewContainer: ViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 // 	id: CHAT_EDITING_SIDEBAR_PANEL_ID,
@@ -435,7 +435,7 @@ Registry.as<IExtensionFeaturesRegistry>(Extensions.ExtensionFeaturesRegistry).re
 });
 
 
-// Void commented this out
+// Code commented this out
 // // TODO@roblourens remove after a few months
 
 // export class MovedChatEditsViewPane extends ViewPane {

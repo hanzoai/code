@@ -4,15 +4,15 @@
  *--------------------------------------------------------------------------------------*/
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FeatureName, featureNames, ModelSelection, modelSelectionsEqual, ProviderName, providerNames } from '../../../../../../../platform/void/common/codeSettingsTypes.js'
+import { FeatureName, featureNames, isFeatureNameDisabled, ModelSelection, modelSelectionsEqual, ProviderName, providerNames, SettingsOfProvider } from '../../../../../../../workbench/contrib/code/common/codeSettingsTypes.js'
 import { useSettingsState, useRefreshModelState, useAccessor } from '../util/services.js'
-import { _CodeSelectBox, CodeCustomSelectBox } from '../util/inputs.js'
+import { _CodeSelectBox, CodeCustomDropdownBox } from '../util/inputs.js'
 import { SelectBox } from '../../../../../../../base/browser/ui/selectBox/selectBox.js'
 import { IconWarning } from '../sidebar-tsx/SidebarChat.js'
 import { CODE_OPEN_SETTINGS_ACTION_ID, CODE_TOGGLE_SETTINGS_ACTION_ID } from '../../../codeSettingsPane.js'
-import { ModelOption } from '../../../../../../../platform/void/common/codeSettingsService.js'
-
-
+import { modelFilterOfFeatureName, ModelOption } from '../../../../../../../workbench/contrib/code/common/codeSettingsService.js'
+import { WarningBox } from './WarningBox.js'
+import ErrorBoundary from '../sidebar-tsx/ErrorBoundary.js'
 
 const optionsEqual = (m1: ModelOption[], m2: ModelOption[]) => {
 	if (m1.length !== m2.length) return false
@@ -27,13 +27,13 @@ const ModelSelectBox = ({ options, featureName, className }: { options: ModelOpt
 	const codeSettingsService = accessor.get('ICodeSettingsService')
 
 	const selection = codeSettingsService.state.modelSelectionOfFeature[featureName]
-	const selectedOption = selection ? codeSettingsService.state._modelOptions.find(v => modelSelectionsEqual(v.selection, selection)) : options[0]
+	const selectedOption = selection ? codeSettingsService.state._modelOptions.find(v => modelSelectionsEqual(v.selection, selection))! : options[0]
 
 	const onChangeOption = useCallback((newOption: ModelOption) => {
 		codeSettingsService.setModelSelectionOfFeature(featureName, newOption.selection)
 	}, [codeSettingsService, featureName])
 
-	return <CodeCustomSelectBox
+	return <CodeCustomDropdownBox
 		options={options}
 		selectedOption={selectedOption}
 		onChangeOption={onChangeOption}
@@ -41,40 +41,13 @@ const ModelSelectBox = ({ options, featureName, className }: { options: ModelOpt
 		getOptionDropdownName={(option) => option.selection.modelName}
 		getOptionDropdownDetail={(option) => option.selection.providerName}
 		getOptionsEqual={(a, b) => optionsEqual([a], [b])}
-		className={`text-xs text-code-fg-3 px-1`}
+		className={className}
 		matchInputWidth={false}
 	/>
 }
 
-// 	const codeSettingsService = accessor.get('ICodeSettingsService')
 
-// 	let weChangedText = false
-
-// 	return <CodeSelectBox
-// 		className='@@[&_select]:!code-text-xs text-code-fg-3'
-// 		options={options}
-// 		onChangeSelection={useCallback((newVal: ModelSelection) => {
-// 			if (weChangedText) return
-// 			codeSettingsService.setModelSelectionOfFeature(featureName, newVal)
-// 		}, [codeSettingsService, featureName])}
-// 		// we are responsible for setting the initial state here. always sync instance when state changes.
-// 		onCreateInstance={useCallback((instance: SelectBox) => {
-// 			const syncInstance = () => {
-// 				const modelsListRef = codeSettingsService.state._modelOptions // as a ref
-// 				const settingsAtProvider = codeSettingsService.state.modelSelectionOfFeature[featureName]
-// 				const selectionIdx = settingsAtProvider === null ? -1 : modelsListRef.findIndex(v => modelSelectionsEqual(v.value, settingsAtProvider))
-// 				weChangedText = true
-// 				instance.select(selectionIdx === -1 ? 0 : selectionIdx)
-// 				weChangedText = false
-// 			}
-// 			syncInstance()
-// 			const disposable = codeSettingsService.onDidChangeState(syncInstance)
-// 			return [disposable]
-// 		}, [codeSettingsService, featureName])}
-// 	/>
-// }
-
-const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) => {
+const MemoizedModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {
 	const settingsState = useSettingsState()
 	const oldOptionsRef = useRef<ModelOption[]>([])
 	const [memoizedOptions, setMemoizedOptions] = useState(oldOptionsRef.current)
@@ -99,31 +72,7 @@ const MemoizedModelSelectBox = ({ featureName }: { featureName: FeatureName }) =
 
 }
 
-export const WarningBox = ({ text, onClick, className }: { text: string; onClick?: () => void; className?: string }) => {
-
-	return <div
-		className={`
-			text-code-warning brightness-90 opacity-90
-			text-xs text-ellipsis
-			${onClick ? `hover:brightness-75 transition-all duration-200 cursor-pointer` : ''}
-			flex items-center flex-nowrap
-			${className}
-		`}
-		onClick={onClick}
-	>
-		<IconWarning
-			size={14}
-			className='mr-1'
-		/>
-		<span>{text}</span>
-	</div>
-	// return <CodeSelectBox
-	// 	options={[{ text: 'Please add a model!', value: null }]}
-	// 	onChangeSelection={() => { }}
-	// />
-}
-
-export const ModelDropdown = ({ featureName }: { featureName: FeatureName }) => {
+export const ModelDropdown = ({ featureName, className }: { featureName: FeatureName, className: string }) => {
 	const settingsState = useSettingsState()
 
 	const accessor = useAccessor()

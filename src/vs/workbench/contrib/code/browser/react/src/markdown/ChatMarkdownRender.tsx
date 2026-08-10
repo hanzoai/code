@@ -14,7 +14,7 @@ import { isAbsolute } from '../../../../../../../base/common/path.js'
 import { separateOutFirstLine } from '../../../../common/helpers/util.js'
 import { BlockCode } from '../util/inputs.js'
 import { CodespanLocationLink } from '../../../../common/chatThreadServiceTypes.js'
-import { getBasename, getRelative, voidOpenFileFn } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, getRelative, codeOpenFileFn } from '../sidebar-tsx/SidebarChat.js'
 
 
 export type ChatMessageLocation = {
@@ -97,7 +97,7 @@ const Codespan = ({ text, className, onClick, tooltip }: { text: string, classNa
 		className={`font-mono font-medium rounded-sm bg-void-bg-1 px-1 ${className}`}
 		onClick={onClick}
 		{...tooltip ? {
-			'data-tooltip-id': 'void-tooltip',
+			'data-tooltip-id': 'code-tooltip',
 			'data-tooltip-content': tooltip,
 			'data-tooltip-place': 'top',
 		} : {}}
@@ -150,42 +150,118 @@ const CodespanWithLink = ({ text, rawText, chatMessageLocation }: { text: string
 
 	const onClick = () => {
 		if (!link) return;
-		// Use the updated voidOpenFileFn to open the file and handle selection
+		// Use the updated codeOpenFileFn to open the file and handle selection
 		if (link.selection)
-			voidOpenFileFn(link.uri, accessor, [link.selection.startLineNumber, link.selection.endLineNumber]);
+			codeOpenFileFn(link.uri, accessor, [link.selection.startLineNumber, link.selection.endLineNumber]);
 		else
-			voidOpenFileFn(link.uri, accessor);
+			codeOpenFileFn(link.uri, accessor);
 	}
 
-	return <>
-		<button
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-code-bg-1 text-code-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
-			onClick={onCopy}
-		>
-			{copyButtonState}
-		</button>
-		<button
-			// btn btn-secondary btn-sm border text-sm border-vscode-input-border rounded
-			className={`${isSingleLine ? '' : 'px-1 py-0.5'} text-sm bg-code-bg-1 text-code-fg-1 hover:brightness-110 border border-vscode-input-border rounded`}
-			onClick={onApply}
-		>
-			Apply
-		</button>
-	</>
+	return <Codespan
+		text={displayText}
+		onClick={onClick}
+		className={link ? 'underline hover:brightness-90 transition-all duration-200 cursor-pointer' : ''}
+		tooltip={tooltip || undefined}
+	/>
 }
 
-export const CodeSpan = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-	return <code className={`
-			bg-code-bg-1
-			px-1
-			rounded-sm
-			font-mono font-medium
-			break-all
-			${className}
-		`}
-	>
-		{children}
-	</code>
+
+const paragraphToLatexSegments = (paragraphText: string) => {
+
+	const segments: React.ReactNode[] = [];
+
+	if (paragraphText
+		&& !(paragraphText.includes('#') || paragraphText.includes('`')) // don't process latex if a codespan or header tag
+		&& !/^[\w\s.()[\]{}]+$/.test(paragraphText) // don't process latex if string only contains alphanumeric chars, whitespace, periods, and brackets
+	) {
+		const rawText = paragraphText;
+		// Regular expressions to match LaTeX delimiters
+		const displayMathRegex = /\$\$(.*?)\$\$/g;  // Display math: $$...$$
+		const inlineMathRegex = /\$((?!\$).*?)\$/g; // Inline math: $...$ (but not $$)
+
+		// Check if the paragraph contains any LaTeX expressions
+		if (displayMathRegex.test(rawText) || inlineMathRegex.test(rawText)) {
+			// Reset the regex state (since we used .test earlier)
+			displayMathRegex.lastIndex = 0;
+			inlineMathRegex.lastIndex = 0;
+
+			// Parse the text into segments of regular text and LaTeX
+			let lastIndex = 0;
+			let segmentId = 0;
+
+			// First replace display math ($$...$$)
+			let match;
+			while ((match = displayMathRegex.exec(rawText)) !== null) {
+				const [fullMatch, formula] = match;
+				const matchIndex = match.index;
+
+				// Add text before the LaTeX expression
+				if (matchIndex > lastIndex) {
+					const textBefore = rawText.substring(lastIndex, matchIndex);
+					segments.push(
+						<span key={`text-${segmentId++}`}>
+							{textBefore}
+						</span>
+					);
+				}
+
+				// Add the LaTeX expression
+				segments.push(
+					<LatexRender key={`latex-${segmentId++}`} latex={fullMatch} />
+				);
+
+				lastIndex = matchIndex + fullMatch.length;
+			}
+
+			// Add any remaining text (which might contain inline math)
+			if (lastIndex < rawText.length) {
+				const remainingText = rawText.substring(lastIndex);
+
+				// Process inline math in the remaining text
+				lastIndex = 0;
+				inlineMathRegex.lastIndex = 0;
+				const inlineSegments: React.ReactNode[] = [];
+
+				while ((match = inlineMathRegex.exec(remainingText)) !== null) {
+					const [fullMatch] = match;
+					const matchIndex = match.index;
+
+					// Add text before the inline LaTeX
+					if (matchIndex > lastIndex) {
+						const textBefore = remainingText.substring(lastIndex, matchIndex);
+						inlineSegments.push(
+							<span key={`inline-text-${segmentId++}`}>
+								{textBefore}
+							</span>
+						);
+					}
+
+					// Add the inline LaTeX
+					inlineSegments.push(
+						<LatexRender key={`inline-latex-${segmentId++}`} latex={fullMatch} />
+					);
+
+					lastIndex = matchIndex + fullMatch.length;
+				}
+
+				// Add any remaining text after all inline math
+				if (lastIndex < remainingText.length) {
+					inlineSegments.push(
+						<span key={`inline-final-${segmentId++}`}>
+							{remainingText.substring(lastIndex)}
+						</span>
+					);
+				}
+
+				segments.push(...inlineSegments);
+			}
+
+
+		}
+	}
+
+
+	return segments
 }
 
 
@@ -263,45 +339,32 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 	if (t.type === 'heading') {
 
 		const HeadingTag = `h${t.depth}` as keyof JSX.IntrinsicElements
-		const headingClasses: { [h: string]: string } = {
-			h1: "text-4xl font-semibold mt-6 mb-4 pb-2 border-b border-code-bg-2",
-			h2: "text-3xl font-semibold mt-6 mb-4 pb-2 border-b border-code-bg-2",
-			h3: "text-2xl font-semibold mt-6 mb-4",
-			h4: "text-xl font-semibold mt-6 mb-4",
-			h5: "text-lg font-semibold mt-6 mb-4",
-			h6: "text-base font-semibold mt-6 mb-4 text-gray-600"
-		}
-		return <HeadingTag className={headingClasses[HeadingTag]}>{t.text}</HeadingTag>
+
+		return <HeadingTag>
+			<ChatMarkdownRender chatMessageLocation={chatMessageLocation} string={t.text} inPTag={true} codeURI={codeURI} {...options} />
+		</HeadingTag>
 	}
 
 	if (t.type === 'table') {
 
 		return (
-			<div className={`${noSpace ? '' : 'my-4'} overflow-x-auto`}>
-				<table className="min-w-full border border-code-bg-2">
+			<div>
+				<table>
 					<thead>
-						<tr className="bg-code-bg-1">
-							{t.header.map((cell: any, index: number) => (
-								<th
-									key={index}
-									className="px-4 py-2 border border-code-bg-2 font-semibold"
-									style={{ textAlign: t.align[index] || "left" }}
-								>
-									{cell.raw}
+						<tr>
+							{t.header.map((h, hIdx: number) => (
+								<th key={hIdx}>
+									{h.text}
 								</th>
 							))}
 						</tr>
 					</thead>
 					<tbody>
-						{t.rows.map((row: any[], rowIndex: number) => (
-							<tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-code-bg-1'}>
-								{row.map((cell: any, cellIndex: number) => (
-									<td
-										key={cellIndex}
-										className="px-4 py-2 border border-code-bg-2"
-										style={{ textAlign: t.align[cellIndex] || "left" }}
-									>
-										{cell.raw}
+						{t.rows.map((row, rowIdx: number) => (
+							<tr key={rowIdx}>
+								{row.map((r, rIdx: number) => (
+									<td key={rIdx} >
+										{r.text}
 									</td>
 								))}
 							</tr>
@@ -346,12 +409,12 @@ const RenderToken = ({ token, inPTag, codeURI, chatMessageLocation, tokenIdx, ..
 		// )
 	}
 
-	if (t.type === "hr") {
-		return <hr className="my-6 border-t border-code-bg-2" />
+	if (t.type === 'hr') {
+		return <hr />
 	}
 
-	if (t.type === "blockquote") {
-		return <blockquote className={`pl-4 border-l-4 border-code-bg-2 italic ${noSpace ? '' : 'my-4'}`}>{t.text}</blockquote>
+	if (t.type === 'blockquote') {
+		return <blockquote>{t.text}</blockquote>
 	}
 
 	if (t.type === 'list_item') {

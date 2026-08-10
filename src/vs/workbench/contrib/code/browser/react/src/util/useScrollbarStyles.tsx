@@ -21,10 +21,10 @@
 // 				...Array.from(containerRef.current?.querySelectorAll(overflowSelector) || [])
 // 			];
 
-		// Apply styles and listeners to each scroll element
-		scrollElements.forEach(element => {
-			// Add the scrollable class directly to the overflow element
-			element.classList.add('code-scrollable-element');
+// 			// Apply basic styling to all elements
+// 			scrollElements.forEach(element => {
+// 				element.classList.add('code-scrollable-element');
+// 			});
 
 // 			// Only initialize fade effects for elements that haven't been initialized yet
 // 			scrollElements.forEach(element => {
@@ -78,18 +78,18 @@
 // 					element.addEventListener('mouseenter', onMouseEnter);
 // 					element.addEventListener('mouseleave', onMouseLeave);
 
-			// Store cleanup function
-			const cleanup = () => {
-				element.removeEventListener('mouseenter', onMouseEnter);
-				element.removeEventListener('mouseleave', onMouseLeave);
-				if (fadeTimeout) clearTimeout(fadeTimeout);
-				if (fadeInterval) clearInterval(fadeInterval);
-				element.classList.remove('code-scrollable-element');
-				// Remove any remaining show-scrollbar classes
-				for (let i = 0; i <= 10; i++) {
-					element.classList.remove(`show-scrollbar-${i}`);
-				}
-			};
+// 					// Store cleanup function
+// 					const cleanup = () => {
+// 						element.removeEventListener('mouseenter', onMouseEnter);
+// 						element.removeEventListener('mouseleave', onMouseLeave);
+// 						if (fadeTimeout) clearTimeout(fadeTimeout);
+// 						if (fadeInterval) clearInterval(fadeInterval);
+// 						element.classList.remove('code-scrollable-element');
+// 						// Remove any remaining show-scrollbar classes
+// 						for (let i = 0; i <= 10; i++) {
+// 							element.classList.remove(`show-scrollbar-${i}`);
+// 						}
+// 					};
 
 // 					// Store the cleanup function on the element for later use
 // 					(element as any).__scrollbarCleanup = cleanup;

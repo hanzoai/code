@@ -7,12 +7,12 @@ import { Disposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
-import { mountVoidTooltip } from './react/out/void-tooltip/index.js';
+import { mountCodeTooltip } from './react/out/code-tooltip/index.js';
 import { h, getActiveWindow } from '../../../../base/browser/dom.js';
 
 // Tooltip contribution that mounts the component at startup
 export class TooltipContribution extends Disposable implements IWorkbenchContribution {
-	static readonly ID = 'workbench.contrib.voidTooltip';
+	static readonly ID = 'workbench.contrib.codeTooltip';
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -35,7 +35,7 @@ export class TooltipContribution extends Disposable implements IWorkbenchContrib
 
 			// Mount the React component
 			this.instantiationService.invokeFunction((accessor: ServicesAccessor) => {
-				const result = mountVoidTooltip(tooltipContainer, accessor);
+				const result = mountCodeTooltip(tooltipContainer, accessor);
 				if (result && typeof result.dispose === 'function') {
 					this._register(toDisposable(result.dispose));
 				}

@@ -3,28 +3,29 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
- .monaco-editor .code-sweepIdxBG {
-	background-color: var(--vscode-code-sweepIdxBG);
+.monaco-editor .void-sweepIdxBG {
+	background-color: var(--vscode-void-sweepIdxBG);
 }
 
-.code-sweepBG {
-	background-color: var(--vscode-code-sweepBG);
+.void-sweepBG {
+	background-color: var(--vscode-void-sweepBG);
 }
 
-.code-highlightBG {
-	background-color: var(--vscode-code-highlightBG);
+.void-highlightBG {
+	background-color: var(--vscode-void-highlightBG);
 }
 
-.code-greenBG {
-	background-color: var(--vscode-code-greenBG);
+.void-greenBG {
+	background-color: var(--vscode-void-greenBG);
 }
 
-.code-redBG {
-	background-color: var(--vscode-code-redBG);
+.void-redBG {
+	background-color: var(--vscode-void-redBG);
 }
 
-.code-watermark-button {
-    margin: 8px 0;
+
+/* Renamed from void-watermark-button to void-openfolder-button */
+.void-openfolder-button {
     padding: 8px 20px;
     background-color: #306dce;
     color: white;
@@ -54,20 +55,18 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
-.code-watermark-button:hover {
-    background-color: #2563eb;
+.void-openssh-button:hover {
+    background-color: #474747; /* Darker on hover */
 }
-.code-watermark-button:active {
-    background-color: #2563eb;
+.void-openssh-button:active {
+    background-color: #474747;
 }
 
 
-
-
-.code-settings-watermark-button {
-    margin: 8px 0;
-    padding: 8px 20px;
-    background-color: var(--vscode-input-background);
+.void-settings-watermark-button {
+	margin: 8px 0;
+	padding: 8px 20px;
+	background-color: var(--vscode-input-background);
 	color: var(--vscode-input-foreground);
 	border: none;
 	border-radius: 4px;
@@ -76,22 +75,22 @@
 	cursor: pointer;
 	transition: all 0.2s ease;
 }
-.code-settings-watermark-button:hover {
+
+.void-settings-watermark-button:hover {
 	filter: brightness(1.1);
 }
-.code-settings-watermark-button:active {
+
+.void-settings-watermark-button:active {
 	filter: brightness(1.1);
 }
 
-
-
-
-.code-link {
+.void-link {
 	color: #3b82f6;
 	cursor: pointer;
 	transition: all 0.2s ease;
 }
-.code-link:hover {
+
+.void-link:hover {
 	opacity: 80%;
 }
 
@@ -165,89 +164,41 @@
 	/* For Firefox */
 }
 
-.code-scrollable-element::-webkit-scrollbar,
-.code-scrollable-element *::-webkit-scrollbar {
-    width: 14px !important;
-    height: 14px !important;
+.void-scrollable-element::-webkit-scrollbar,
+.void-scrollable-element *::-webkit-scrollbar {
+	width: var(--scrollbar-vertical-width) !important;
+	height: var(--scrollbar-horizontal-height) !important;
+	background-color: var(--void-bg-3) !important;
 }
 
-.code-scrollable-element::-webkit-scrollbar-track,
-.code-scrollable-element *::-webkit-scrollbar-track {
-    background: transparent !important;
+.void-scrollable-element::-webkit-scrollbar-thumb,
+.void-scrollable-element *::-webkit-scrollbar-thumb {
+	background-color: var(--void-bg-1) !important;
+	border-radius: 4px !important;
+	border: none !important;
+	-webkit-box-shadow: none !important;
+	box-shadow: none !important;
 }
 
-.code-scrollable-element::-webkit-scrollbar-thumb,
-.code-scrollable-element *::-webkit-scrollbar-thumb {
-    background-color: transparent !important;
-    border-radius: 0px !important;
+.void-scrollable-element::-webkit-scrollbar-thumb:hover,
+.void-scrollable-element *::-webkit-scrollbar-thumb:hover {
+	background-color: var(--void-bg-1) !important;
+	filter: brightness(1.1) !important;
 }
 
-.code-scrollable-element::-webkit-scrollbar-thumb:hover,
-.code-scrollable-element *::-webkit-scrollbar-thumb:hover {
-    background-color: var(--vscode-scrollbarSlider-hoverBackground) !important;
+.void-scrollable-element::-webkit-scrollbar-thumb:active,
+.void-scrollable-element *::-webkit-scrollbar-thumb:active {
+	background-color: var(--void-bg-1) !important;
+	filter: brightness(1.2) !important;
 }
 
-.code-scrollable-element::-webkit-scrollbar-thumb:active,
-.code-scrollable-element *::-webkit-scrollbar-thumb:active {
-    background-color: var(--vscode-scrollbarSlider-activeBackground) !important;
+.void-scrollable-element::-webkit-scrollbar-track,
+.void-scrollable-element *::-webkit-scrollbar-track {
+	background-color: var(--void-bg-3) !important;
+	border: none !important;
 }
 
-.code-scrollable-element::-webkit-scrollbar-corner,
-.code-scrollable-element *::-webkit-scrollbar-corner {
-    background-color: transparent !important;
-}
-
-.code-scrollable-element.show-scrollbar-0::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-0 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 0%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-1::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-1 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 10%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-2::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-2 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 20%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-3::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-3 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 30%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-4::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-4 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 40%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-5::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-5 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 50%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-6::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-6 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 60%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-7::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-7 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 70%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-8::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-8 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 80%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-9::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-9 *::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 90%, transparent) !important;
-}
-
-.code-scrollable-element.show-scrollbar-10::-webkit-scrollbar-thumb,
-.code-scrollable-element.show-scrollbar-10 *::-webkit-scrollbar-thumb {
-    background-color: var(--vscode-scrollbarSlider-background) !important;
+.void-scrollable-element::-webkit-scrollbar-corner,
+.void-scrollable-element *::-webkit-scrollbar-corner {
+	background-color: var(--void-bg-3) !important;
 }

@@ -6,11 +6,11 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { useAccessor, useChatThreadsState, useChatThreadsStreamState, useCommandBarState, useCommandBarURIListener, useSettingsState } from '../util/services.js'
 import { usePromise, useRefState } from '../util/helpers.js'
-import { isFeatureNameDisabled } from '../../../../common/voidSettingsTypes.js'
+import { isFeatureNameDisabled } from '../../../../common/codeSettingsTypes.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { FileSymlink, LucideIcon, RotateCw, Terminal } from 'lucide-react'
 import { Check, X, Square, Copy, Play, } from 'lucide-react'
-import { getBasename, ListableToolItem, voidOpenFileFn, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
+import { getBasename, ListableToolItem, codeOpenFileFn, ToolChildrenWrapper } from '../sidebar-tsx/SidebarChat.js'
 import { PlacesType, VariantType } from 'react-tooltip'
 
 enum CopyButtonText {
@@ -109,7 +109,7 @@ export const JumpToFileButton = ({ uri, ...props }: { uri: URI | 'current' } & R
 		<IconShell1
 			Icon={FileSymlink}
 			onClick={() => {
-				voidOpenFileFn(uri, accessor)
+				codeOpenFileFn(uri, accessor)
 			}}
 			{...tooltipPropsForApplyBlock({ tooltipName: 'Go to file' })}
 			{...props}
@@ -141,13 +141,13 @@ const getUriBeingApplied = (applyBoxId: string) => {
 
 export const useApplyStreamState = ({ applyBoxId }: { applyBoxId: string }) => {
 	const accessor = useAccessor()
-	const voidCommandBarService = accessor.get('IVoidCommandBarService')
+	const codeCommandBarService = accessor.get('ICodeCommandBarService')
 
 	const getStreamState = useCallback(() => {
 		const uri = getUriBeingApplied(applyBoxId)
 		if (!uri) return 'idle-no-changes'
-		return voidCommandBarService.getStreamState(uri)
-	}, [voidCommandBarService, applyBoxId])
+		return codeCommandBarService.getStreamState(uri)
+	}, [codeCommandBarService, applyBoxId])
 
 
 	const [currStreamStateRef, setStreamState] = useRefState(getStreamState())
@@ -190,7 +190,7 @@ export const StatusIndicator = ({ indicatorColor, title, className, ...props }: 
 };
 
 const tooltipPropsForApplyBlock = ({ tooltipName, color = undefined, position = 'top', offset = undefined }: { tooltipName: string, color?: IndicatorColor, position?: PlacesType, offset?: number }) => ({
-	'data-tooltip-id': color === 'orange' ? `void-tooltip-orange` : color === 'green' ? 'void-tooltip-green' : 'void-tooltip',
+	'data-tooltip-id': color === 'orange' ? `code-tooltip-orange` : color === 'green' ? 'code-tooltip-green' : 'code-tooltip',
 	'data-tooltip-place': position as PlacesType,
 	'data-tooltip-content': `${tooltipName}`,
 	'data-tooltip-offset': offset,
@@ -198,13 +198,13 @@ const tooltipPropsForApplyBlock = ({ tooltipName, color = undefined, position = 
 
 export const useEditToolStreamState = ({ applyBoxId, uri }: { applyBoxId: string, uri: URI }) => {
 	const accessor = useAccessor()
-	const voidCommandBarService = accessor.get('IVoidCommandBarService')
-	const [streamState, setStreamState] = useState(voidCommandBarService.getStreamState(uri))
+	const codeCommandBarService = accessor.get('ICodeCommandBarService')
+	const [streamState, setStreamState] = useState(codeCommandBarService.getStreamState(uri))
 	// listen for stream updates on this box
 	useCommandBarURIListener(useCallback((uri_) => {
 		const shouldUpdate = uri.fsPath === uri_.fsPath
-		if (shouldUpdate) { setStreamState(voidCommandBarService.getStreamState(uri)) }
-	}, [voidCommandBarService, applyBoxId, uri]))
+		if (shouldUpdate) { setStreamState(codeCommandBarService.getStreamState(uri)) }
+	}, [codeCommandBarService, applyBoxId, uri]))
 
 	return { streamState, }
 }
@@ -351,14 +351,14 @@ const ApplyButtonsForEdit = ({
 		setApplying(newApplyingUri)
 
 		if (!applyDonePromise) {
-			notificationService.info(`Void Error: We couldn't run Apply here. ${uri === 'current' ? 'This Apply block wants to run on the current file, but you might not have a file open.' : `This Apply block wants to run on ${uri.fsPath}, but it might not exist.`}`)
+			notificationService.info(`Code Error: We couldn't run Apply here. ${uri === 'current' ? 'This Apply block wants to run on the current file, but you might not have a file open.' : `This Apply block wants to run on ${uri.fsPath}, but it might not exist.`}`)
 		}
 
 		// catch any errors by interrupting the stream
 		applyDonePromise?.catch(e => {
 			const uri = getUriBeingApplied(applyBoxId)
 			if (uri) editCodeService.interruptURIStreaming({ uri: uri })
-			notificationService.info(`Void Error: There was a problem running Apply: ${e}.`)
+			notificationService.info(`Code Error: There was a problem running Apply: ${e}.`)
 
 		})
 		metricsService.capture('Apply Code', { length: codeStr.length }) // capture the length only
@@ -530,7 +530,7 @@ export const BlockCodeApplyWrapper = ({
 			name={<span className='not-italic'>{getBasename(uri.fsPath)}</span>}
 			isSmall={true}
 			showDot={false}
-			onClick={() => { voidOpenFileFn(uri, accessor) }}
+			onClick={() => { codeOpenFileFn(uri, accessor) }}
 		/>
 		: <span>{language}</span>
 

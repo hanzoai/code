@@ -7,9 +7,11 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
 	entry: [
-		'./src2/void-editor-widgets-tsx/index.tsx',
+		'./src2/code-editor-widgets-tsx/index.tsx',
 		'./src2/sidebar-tsx/index.tsx',
 		'./src2/code-settings-tsx/index.tsx',
+		'./src2/code-tooltip/index.tsx',
+		'./src2/code-onboarding/index.tsx',
 		'./src2/quick-edit-tsx/index.tsx',
 		'./src2/diff/index.tsx',
 	],

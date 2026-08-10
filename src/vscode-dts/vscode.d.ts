@@ -14369,9 +14369,6 @@ declare module 'vscode' {
 	 */
 	export namespace languages {
 
-		/** Code added this: */
-		export function addInlineDiff(editor: TextEditor, originalText: string, modifiedRange: Range): void;
-
 		/**
 		 * Return the identifiers of all known languages.
 		 * @returns Promise resolving to an array of identifier strings.
