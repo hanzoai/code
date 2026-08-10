@@ -25959,7 +25959,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/lines-around-comment.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-find.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-confusing-non-null-assertion.js
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-invalid-code-type.js.map
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-invalid-void-type.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/class-methods-use-this.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/space-infix-ops.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/ban-tslint-comment.js
@@ -25980,7 +25980,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-return-this-type.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-misused-promises.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-unused-expressions.js.map
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-invalid-code-type.js
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-invalid-void-type.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-type-alias.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/strict-boolean-expressions.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/type-annotation-spacing.js
@@ -26057,7 +26057,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-unsafe-unary-minus.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-for-of.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-empty-interface.js
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-meaningless-code-operator.js.map
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-meaningless-void-operator.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/explicit-function-return-type.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/comma-dangle.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/index.js
@@ -26068,7 +26068,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-unsafe-argument.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-extra-parens.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-import-type-side-effects.js.map
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-meaningless-code-operator.js
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-meaningless-void-operator.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/method-signature-style.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-unused-vars.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-array-delete.js
@@ -26167,7 +26167,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-inferrable-types.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-useless-template-literals.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-unused-expressions.js
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-confusing-code-expression.js.map
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-confusing-void-expression.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-ts-expect-error.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-unsafe-member-access.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-namespace-keyword.js
@@ -26242,7 +26242,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/ban-ts-comment.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-regexp-exec.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-non-null-asserted-optional-chain.js
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-confusing-code-expression.js
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-confusing-void-expression.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-for-in-array.js.map
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/require-await.js
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/dist/rules/no-dupe-class-members.js
@@ -26277,7 +26277,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-unnecessary-type-arguments.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/ban-ts-comment.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-non-null-asserted-optional-chain.md
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-confusing-code-expression.md
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-confusing-void-expression.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/require-await.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-dupe-class-members.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/ban-types.md
@@ -26341,7 +26341,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-unused-vars.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-array-delete.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/README.md
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-meaningless-code-operator.md
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-meaningless-void-operator.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/prefer-string-starts-ends-with.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-non-null-asserted-nullish-coalescing.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/prefer-for-of.md
@@ -26376,7 +26376,7 @@
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/strict-boolean-expressions.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/type-annotation-spacing.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/typedef.md
-/Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-invalid-code-type.md
+/Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-invalid-void-type.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-type-alias.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-unnecessary-type-constraint.md
 /Users/example/node_modules/@typescript-eslint/eslint-plugin/docs/rules/no-implied-eval.md
@@ -64786,7 +64786,7 @@
 /Users/example/extensions/notebook-renderers/node_modules/whatwg-url/lib/utils.js
 /Users/example/extensions/notebook-renderers/node_modules/whatwg-url/lib/url-state-machine.js
 /Users/example/extensions/notebook-renderers/node_modules/whatwg-url/lib/URL.js
-/Users/example/extensions/notebook-renderers/node_modules/whatwg-url/lib/CodeFunction.js
+/Users/example/extensions/notebook-renderers/node_modules/whatwg-url/lib/VoidFunction.js
 /Users/example/extensions/notebook-renderers/node_modules/whatwg-url/LICENSE.txt
 /Users/example/extensions/notebook-renderers/node_modules/domexception/index.js
 /Users/example/extensions/notebook-renderers/node_modules/domexception/webidl2js-wrapper.js
@@ -64797,7 +64797,7 @@
 /Users/example/extensions/notebook-renderers/node_modules/domexception/lib/utils.js
 /Users/example/extensions/notebook-renderers/node_modules/domexception/lib/DOMException-impl.js
 /Users/example/extensions/notebook-renderers/node_modules/domexception/lib/DOMException.js
-/Users/example/extensions/notebook-renderers/node_modules/domexception/lib/CodeFunction.js
+/Users/example/extensions/notebook-renderers/node_modules/domexception/lib/VoidFunction.js
 /Users/example/extensions/notebook-renderers/node_modules/domexception/LICENSE.txt
 /Users/example/extensions/notebook-renderers/node_modules/combined-stream/License
 /Users/example/extensions/notebook-renderers/node_modules/combined-stream/Readme.md
@@ -65079,7 +65079,7 @@
 /Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/Text.js
 /Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/HTMLTableElement.js
 /Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/HTMLMenuElement.js
-/Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/CodeFunction.js
+/Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/VoidFunction.js
 /Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/PopStateEvent.js
 /Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/Document.js
 /Users/example/extensions/notebook-renderers/node_modules/jsdom/lib/jsdom/living/generated/FormData.js
@@ -73339,7 +73339,7 @@
 /Users/example/extensions/markdown-language-features/server/node_modules/vscode-languageserver/node.cmd
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/LICENSE
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/CHANGELOG.md
-/Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/code-tag.js
+/Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/void-tag.js
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/parse.d.ts
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/nodes/html.js
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/nodes/type.js
@@ -73351,7 +73351,7 @@
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/nodes/text.d.ts
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/nodes/node.d.ts
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/nodes/text.js
-/Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/code-tag.d.ts
+/Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/void-tag.d.ts
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/index.js
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/valid.d.ts
 /Users/example/extensions/markdown-language-features/server/node_modules/node-html-parser/dist/valid.js

@@ -3,15 +3,14 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useSettingsState, useSidebarState, useChatThreadsState, useQuickEditState, useAccessor } from '../util/services.js';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSettingsState, useAccessor, useCtrlKZoneStreamingState } from '../util/services.js';
 import { TextAreaFns, CodeInputBox2 } from '../util/inputs.js';
 import { QuickEditPropsType } from '../../../quickEditActions.js';
-import { ButtonStop, ButtonSubmit, IconX } from '../sidebar-tsx/SidebarChat.js';
-import { ModelDropdown } from '../code-settings-tsx/ModelDropdown.js';
+import { ButtonStop, ButtonSubmit, IconX, CodeChatArea } from '../sidebar-tsx/SidebarChat.js';
 import { CODE_CTRL_K_ACTION_ID } from '../../../actionIDs.js';
 import { useRefState } from '../util/helpers.js';
-import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/void/common/voidSettingsTypes.js';
+import { isFeatureNameDisabled } from '../../../../../../../workbench/contrib/code/common/codeSettingsTypes.js';
 
 
 
@@ -96,108 +95,43 @@ export const QuickEditChat = ({
 
 	const chatAreaRef = useRef<HTMLDivElement | null>(null)
 	return <div ref={sizerRef} style={{ maxWidth: 450 }} className={`py-2 w-full`}>
-		<form
-			// copied from SidebarChat.tsx
-			className={`
-				flex flex-col gap-2 p-2 relative input text-left shrink-0
-				transition-all duration-200
-				rounded-md
-				bg-vscode-input-bg
-				border border-code-border-3 focus-within:border-code-border-1 hover:border-code-border-1
-			`}
-			onClick={(e) => {
-				textAreaRef.current?.focus()
-			}}
+		<CodeChatArea
+			featureName='Ctrl+K'
+			divRef={chatAreaRef}
+			onSubmit={onSubmit}
+			onAbort={onInterrupt}
+			onClose={onX}
+			isStreaming={isStreamingRef.current}
+			loadingIcon={loadingIcon}
+			isDisabled={isDisabled}
+			onClickAnywhere={() => { textAreaRef.current?.focus() }}
 		>
-
-			{/* // this div is used to position the input box properly */}
-			<div
-				className={`w-full z-[999] relative`}
-			>
-				<div className='flex flex-row items-center justify-between items-end gap-1'>
-
-					{/* input */}
-					<div // copied from SidebarChat.tsx
-						className={`w-full`}
-					>
-						{/* text input */}
-						<CodeInputBox2
-							className='px-1'
-							initValue={initText}
-
-							ref={useCallback((r: HTMLTextAreaElement | null) => {
-								textAreaRef.current = r
-								textAreaRef_(r)
-
-								// if presses the esc key, X
-								r?.addEventListener('keydown', (e) => {
-									if (e.key === 'Escape')
-										onX()
-								})
-
-							}, [textAreaRef_, onX])}
-
-							fnsRef={textAreaFnsRef}
-
-							placeholder={`Enter instructions...`}
-							// ${keybindingString} to select.
-
-							onChangeText={useCallback((newStr: string) => {
-								setInstructionsAreEmpty(!newStr)
-								onChangeText_(newStr)
-							}, [onChangeText_])}
-
-							onKeyDown={(e) => {
-								if (e.key === 'Enter' && !e.shiftKey) {
-									onSubmit(e)
-									return
-								}
-							}}
-
-							multiline={true}
-						/>
-					</div>
-
-					{/* X button */}
-					<div className='absolute -top-1 -right-1 cursor-pointer z-1'>
-						<IconX
-							size={12}
-							className="stroke-[2] opacity-80 text-code-fg-3 hover:brightness-95"
-							onClick={onX}
-						/>
-					</div>
-				</div>
-
-
-				{/* bottom row */}
-				<div
-					className='flex flex-row justify-between items-end gap-1'
-				>
-					{/* submit options */}
-					<div className='max-w-[150px]
-						@@[&_select]:!code-border-none
-						@@[&_select]:!code-outline-none'
-					>
-						<ModelDropdown featureName='Ctrl+K' />
-					</div>
-
-					{/* submit / stop button */}
-					{isStreaming ?
-						// stop button
-						<ButtonStop
-							onClick={onInterrupt}
-						/>
-						:
-						// submit button (up arrow)
-						<ButtonSubmit
-							onClick={onSubmit}
-							disabled={isDisabled}
-						/>
+			<CodeInputBox2
+				className='px-1'
+				initValue={initText}
+				ref={useCallback((r: HTMLTextAreaElement | null) => {
+					textAreaRef.current = r
+					textAreaRef_(r)
+					r?.addEventListener('keydown', (e) => {
+						if (e.key === 'Escape')
+							onX()
+					})
+				}, [textAreaRef_, onX])}
+				fnsRef={textAreaFnsRef}
+				placeholder="Enter instructions..."
+				onChangeText={useCallback((newStr: string) => {
+					setInstructionsAreEmpty(!newStr)
+					onChangeText_(newStr)
+				}, [onChangeText_])}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' && !e.shiftKey) {
+						onSubmit()
+						return
 					}
 				}}
 				multiline={true}
 			/>
-		</VoidChatArea>
+		</CodeChatArea>
 	</div>
 
 

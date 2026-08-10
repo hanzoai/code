@@ -25,8 +25,7 @@ export const ErrorDisplay = ({
 	const details = errorDetails(fullError)
 	const isExpandable = !!details
 
-	const message = message_ === 'TypeError: fetch failed' ? 'TypeError: fetch failed. This likely means you specified the wrong endpoint in Code Settings.' : message_ + ''
-
+	const message = message_ + ''
 
 	return (
 		<div className={`rounded-lg border border-red-200 bg-red-50 p-4 overflow-auto`}>

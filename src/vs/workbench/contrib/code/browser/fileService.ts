@@ -7,17 +7,17 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IDirectoryStrService } from '../common/directoryStrService.js';
 import { messageOfSelection } from '../common/prompt/prompts.js';
-import { IVoidModelService } from '../common/voidModelService.js';
+import { ICodeModelService } from '../common/codeModelService.js';
 
 
 
 class FilePromptActionService extends Action2 {
-	private static readonly VOID_COPY_FILE_PROMPT_ID = 'void.copyfileprompt'
+	private static readonly CODE_COPY_FILE_PROMPT_ID = 'void.copyfileprompt'
 
 	constructor() {
 		super({
-			id: FilePromptActionService.VOID_COPY_FILE_PROMPT_ID,
-			title: localize2('voidCopyPrompt', 'Void: Copy Prompt'),
+			id: FilePromptActionService.CODE_COPY_FILE_PROMPT_ID,
+			title: localize2('codeCopyPrompt', 'Code: Copy Prompt'),
 			menu: [{
 				id: MenuId.ExplorerContext,
 				group: '8_void',
@@ -31,7 +31,7 @@ class FilePromptActionService extends Action2 {
 			const fileService = accessor.get(IFileService);
 			const clipboardService = accessor.get(IClipboardService)
 			const directoryStrService = accessor.get(IDirectoryStrService)
-			const voidModelService = accessor.get(IVoidModelService)
+			const codeModelService = accessor.get(ICodeModelService)
 
 			const stat = await fileService.stat(uri)
 
@@ -45,7 +45,7 @@ class FilePromptActionService extends Action2 {
 				m = await messageOfSelection({
 					type: 'File',
 					uri,
-					language: (await voidModelService.getModelSafe(uri)).model?.getLanguageId() || '',
+					language: (await codeModelService.getModelSafe(uri)).model?.getLanguageId() || '',
 					state: { wasAddedAsCurrentFile: false, },
 				}, {
 					folderOpts,

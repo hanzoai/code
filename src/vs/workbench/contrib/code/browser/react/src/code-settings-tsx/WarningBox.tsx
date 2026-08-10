@@ -19,7 +19,7 @@ export const WarningBox = ({ text, onClick, className }: { text: string; onClick
 		/>
 		<span>{text}</span>
 	</div>
-	// return <VoidSelectBox
+	// return <CodeSelectBox
 	// 	options={[{ text: 'Please add a model!', value: null }]}
 	// 	onChangeSelection={() => { }}
 	// />

@@ -894,19 +894,19 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 		return FilesRenderer.ID;
 	}
 
-	// Void added this
+	// Code added this
 	// // Create void buttons container
-	// const voidButtonsContainer = DOM.append(container, DOM.$('div'));
-	// voidButtonsContainer.style.position = 'absolute'
-	// voidButtonsContainer.style.top = '0'
-	// voidButtonsContainer.style.right = '0'
-	// // const voidButtons = DOM.append(voidButtonsContainer, DOM.$('span'));
-	// // voidButtons.textContent = 'voidbuttons'
-	// // voidButtons.addEventListener('click', () => {
+	// const codeButtonsContainer = DOM.append(container, DOM.$('div'));
+	// codeButtonsContainer.style.position = 'absolute'
+	// codeButtonsContainer.style.top = '0'
+	// codeButtonsContainer.style.right = '0'
+	// // const codeButtons = DOM.append(codeButtonsContainer, DOM.$('span'));
+	// // codeButtons.textContent = 'voidbuttons'
+	// // codeButtons.addEventListener('click', () => {
 	// // 	console.log('ON CLICK', templateData.currentContext?.children)
 	// // })
-	// const voidLabels = this.labels.create(voidButtonsContainer, { supportHighlights: false, supportIcons: false, });
-	// voidLabels.element.textContent = 'hi333'
+	// const codeLabels = this.labels.create(codeButtonsContainer, { supportHighlights: false, supportIcons: false, });
+	// codeLabels.element.textContent = 'hi333'
 	renderTemplate(container: HTMLElement): IFileTemplateData {
 		const templateDisposables = new DisposableStore();
 		const label = templateDisposables.add(this.labels.create(container, { supportHighlights: true }));
@@ -931,7 +931,7 @@ export class FilesRenderer implements ICompressibleTreeRenderer<ExplorerItem, Fu
 		return templateData;
 	}
 
-	// Void cares about this function, this is where elements in the tree are rendered
+	// Code cares about this function, this is where elements in the tree are rendered
 	renderElement(node: ITreeNode<ExplorerItem, FuzzyScore>, index: number, templateData: IFileTemplateData): void {
 		const stat = node.element;
 		templateData.currentContext = stat;

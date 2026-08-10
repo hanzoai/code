@@ -43,86 +43,13 @@ export const PastThreadsList = ({ className = '' }: { className?: string }) => {
 	const displayThreads = showAll ? sortedThreadIds : sortedThreadIds.slice(0, numInitialThreads);
 
 	return (
-		<div className="flex p-2 flex-col gap-y-1 max-h-[400px] overflow-y-auto">
-
-			<div className="w-full relative flex justify-center items-center">
-				{/* title */}
-				<h2 className='font-bold text-lg'>{`History`}</h2>
-				{/* X button at top right */}
-				<button
-					type='button'
-					className='absolute top-0 right-0'
-					onClick={() => sidebarStateService.setState({ isHistoryOpen: false })}
-				>
-					<IconX
-						size={16}
-						className="p-[1px] stroke-[2] opacity-80 text-code-fg-3 hover:brightness-95"
-					/>
-				</button>
-			</div>
-
-			{/* a list of all the past threads */}
-			<div className="px-1">
-				<ul className="flex flex-col gap-y-0.5 overflow-y-auto list-disc">
-
-					{sortedThreadIds.length === 0
-
-						? <div key="nothreads" className="text-center text-code-fg-3 brightness-90 text-sm">{`There are no chat threads yet.`}</div>
-
-						: sortedThreadIds.map((threadId) => {
-							if (!allThreads) {
-								return <li key="error" className="text-code-warning">{`Error accessing chat history.`}</li>;
-							}
-
-							const pastThread = allThreads[threadId];
-							let firstMsg = null;
-							// let secondMsg = null;
-
-							const firstMsgIdx = pastThread.messages.findIndex(
-								(msg) => msg.role !== 'system' && !!msg.displayContent
-							);
-
-							if (firstMsgIdx !== -1) {
-								// firstMsg = truncate(pastThread.messages[firstMsgIdx].displayContent ?? '');
-								firstMsg = pastThread.messages[firstMsgIdx].displayContent ?? '';
-							} else {
-								firstMsg = '""';
-							}
-
-							// const secondMsgIdx = pastThread.messages.findIndex(
-							// 	(msg, i) => msg.role !== 'system' && !!msg.displayContent && i > firstMsgIdx
-							// );
-
-							// if (secondMsgIdx !== -1) {
-							// 	secondMsg = truncate(pastThread.messages[secondMsgIdx].displayContent ?? '');
-							// }
-
-							const numMessages = pastThread.messages.filter(
-								(msg) => msg.role !== 'system'
-							).length;
-
-							return (
-								<li key={pastThread.id}>
-									<button
-										type='button'
-										className={`
-										hover:bg-code-bg-1
-										${threadsState.currentThreadId === pastThread.id ? 'bg-code-bg-1' : ''}
-										rounded-sm px-2 py-1
-										w-full
-										text-left
-										flex items-center
-									`}
-										onClick={() => chatThreadsService.switchToThread(pastThread.id)}
-										onDoubleClick={() => sidebarStateService.setState({ isHistoryOpen: false })}
-										title={new Date(pastThread.createdAt).toLocaleString()}
-									>
-										<div className='truncate'>{`${firstMsg}`}</div>
-										<div>{`\u00A0(${numMessages})`}</div>
-									</button>
-								</li>
-							);
-						})
+		<div className={`flex flex-col mb-2 gap-2 w-full text-nowrap text-void-fg-3 select-none relative ${className}`}>
+			{displayThreads.length === 0 // this should never happen
+				? <></>
+				: displayThreads.map((threadId, i) => {
+					const pastThread = allThreads[threadId];
+					if (!pastThread) {
+						return <div key={i} className="p-1">{`Error accessing chat history.`}</div>;
 					}
 
 					return (
@@ -195,7 +122,7 @@ const DuplicateButton = ({ threadId }: { threadId: string }) => {
 		Icon={Copy}
 		className='size-[11px]'
 		onClick={() => { chatThreadsService.duplicateThread(threadId); }}
-		data-tooltip-id='void-tooltip'
+		data-tooltip-id='code-tooltip'
 		data-tooltip-place='top'
 		data-tooltip-content='Duplicate thread'
 	>
@@ -217,7 +144,7 @@ const TrashButton = ({ threadId }: { threadId: string }) => {
 				Icon={X}
 				className='size-[11px]'
 				onClick={() => { setIsTrashPressed(false); }}
-				data-tooltip-id='void-tooltip'
+				data-tooltip-id='code-tooltip'
 				data-tooltip-place='top'
 				data-tooltip-content='Cancel'
 			/>
@@ -225,7 +152,7 @@ const TrashButton = ({ threadId }: { threadId: string }) => {
 				Icon={Check}
 				className='size-[11px]'
 				onClick={() => { chatThreadsService.deleteThread(threadId); setIsTrashPressed(false); }}
-				data-tooltip-id='void-tooltip'
+				data-tooltip-id='code-tooltip'
 				data-tooltip-place='top'
 				data-tooltip-content='Confirm'
 			/>
@@ -234,7 +161,7 @@ const TrashButton = ({ threadId }: { threadId: string }) => {
 			Icon={Trash2}
 			className='size-[11px]'
 			onClick={() => { setIsTrashPressed(true); }}
-			data-tooltip-id='void-tooltip'
+			data-tooltip-id='code-tooltip'
 			data-tooltip-place='top'
 			data-tooltip-content='Delete thread'
 		/>
@@ -277,7 +204,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	// 	codeStr={async () => {
 	// 		return JSON.stringify(currentThread.messages, null, 2)
 	// 	}}
-	// 	toolTipName={`Copy As Void Chat`}
+	// 	toolTipName={`Copy As Code Chat`}
 	// />
 
 	let firstMsg = null;
@@ -293,7 +220,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 	const numMessages = pastThread.messages.filter((msg) => msg.role === 'assistant' || msg.role === 'user').length;
 
 	const detailsHTML = <span
-	// data-tooltip-id='void-tooltip'
+	// data-tooltip-id='code-tooltip'
 	// data-tooltip-content={`Last modified ${formatTime(new Date(pastThread.lastModified))}`}
 	// data-tooltip-place='top'
 	>
@@ -324,7 +251,7 @@ const PastThreadElement = ({ pastThread, idx, hoveredIdx, setHoveredIdx, isRunni
 						null}
 				{/* name */}
 				<span className="truncate overflow-hidden text-ellipsis"
-					data-tooltip-id='void-tooltip'
+					data-tooltip-id='code-tooltip'
 					data-tooltip-content={numMessages + ' messages'}
 					data-tooltip-place='top'
 				>{firstMsg}</span>

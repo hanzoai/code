@@ -49,28 +49,30 @@ module.exports = {
 			// common colors to use, ordered light to dark
 
 			colors: {
-				"code-bg-1": "var(--vscode-input-background)",
-				"code-bg-2": "var(--vscode-sideBar-background)",
-				"code-bg-3": "var(--vscode-editor-background)",
+				'code-bg-1': 'var(--void-bg-1)',
+				'code-bg-1-alt': 'var(--void-bg-1-alt)',
+				'code-bg-2': 'var(--void-bg-2)',
+				'code-bg-2-alt': 'var(--void-bg-2-alt)',
+				'code-bg-2-hover': 'var(--void-bg-2-hover)',
+				'code-bg-3': 'var(--void-bg-3)',
 
-				"code-fg-1": "var(--vscode-editor-foreground)",
-				"code-fg-2": "var(--vscode-input-foreground)",
-				"code-fg-3": "var(--vscode-input-placeholderForeground)",
-				"code-warning": "var(--vscode-charts-yellow)",
 
-				"code-border-1": "var(--vscode-commandCenter-activeBorder)",
-				"code-border-2": "var(--vscode-commandCenter-border)",
-				"code-border-3": "var(--vscode-commandCenter-inactiveBorder)",
+				'code-fg-0': 'var(--void-fg-0)',
+				'code-fg-1': 'var(--void-fg-1)',
+				'code-fg-2': 'var(--void-fg-2)',
+				'code-fg-3': 'var(--void-fg-3)',
+				// 'code-fg-4': 'var(--vscode-tab-inactiveForeground)',
+				'code-fg-4': 'var(--void-fg-4)',
 
-				'void-warning': 'var(--void-warning)',
+				'code-warning': 'var(--void-warning)',
 
-				'void-border-1': 'var(--void-border-1)',
-				'void-border-2': 'var(--void-border-2)',
-				'void-border-3': 'var(--void-border-3)',
-				'void-border-4': 'var(--void-border-4)',
+				'code-border-1': 'var(--void-border-1)',
+				'code-border-2': 'var(--void-border-2)',
+				'code-border-3': 'var(--void-border-3)',
+				'code-border-4': 'var(--void-border-4)',
 
-				'void-ring-color': 'var(--void-ring-color)',
-				'void-link-color': 'var(--void-link-color)',
+				'code-ring-color': 'var(--void-ring-color)',
+				'code-link-color': 'var(--void-link-color)',
 
 				vscode: {
 					// see: https://code.visualstudio.com/api/extension-guides/webview#theming-webview-content
@@ -189,7 +191,9 @@ module.exports = {
 			},
 		},
 	},
-	plugins: [],
+	plugins: [
+		require('@tailwindcss/typography')
+	],
 	prefix: 'code-'
 }
 

@@ -8,21 +8,111 @@ import Severity from '../../../../base/common/severity.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { localize2 } from '../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { IMetricsService } from '../../../../platform/void/common/metricsService.js';
-import { ICodeUpdateService } from '../../../../platform/void/common/codeUpdateService.js';
+import { INotificationActions, INotificationHandle, INotificationService } from '../../../../platform/notification/common/notification.js';
+import { IMetricsService } from '../common/metricsService.js';
+import { ICodeUpdateService } from '../common/codeUpdateService.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import * as dom from '../../../../base/browser/dom.js';
 import { IUpdateService } from '../../../../platform/update/common/update.js';
-import { VoidCheckUpdateRespose } from '../common/voidUpdateServiceTypes.js';
+import { CodeCheckUpdateRespose } from '../common/codeUpdateServiceTypes.js';
 import { IAction } from '../../../../base/common/actions.js';
 
 
 
 
-const notifyYesUpdate = (notifService: INotificationService, msg?: string) => {
-	const message = msg || 'This is a very old version of void, please download the latest version! [Code Editor](https://code.hanzo.ai/download-beta)!'
-	notifService.notify({
+const notifyUpdate = (res: CodeCheckUpdateRespose & { message: string }, notifService: INotificationService, updateService: IUpdateService): INotificationHandle => {
+	const message = res?.message || 'This is a very old version of Code, please download the latest version! [Code Editor](https://voideditor.com/download-beta)!'
+
+	let actions: INotificationActions | undefined
+
+	if (res?.action) {
+		const primary: IAction[] = []
+
+		if (res.action === 'reinstall') {
+			primary.push({
+				label: `Reinstall`,
+				id: 'void.updater.reinstall',
+				enabled: true,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					const { window } = dom.getActiveWindow()
+					window.open('https://voideditor.com/download-beta')
+				}
+			})
+		}
+
+		if (res.action === 'download') {
+			primary.push({
+				label: `Download`,
+				id: 'void.updater.download',
+				enabled: true,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					updateService.downloadUpdate()
+				}
+			})
+		}
+
+
+		if (res.action === 'apply') {
+			primary.push({
+				label: `Apply`,
+				id: 'void.updater.apply',
+				enabled: true,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					updateService.applyUpdate()
+				}
+			})
+		}
+
+		if (res.action === 'restart') {
+			primary.push({
+				label: `Restart`,
+				id: 'void.updater.restart',
+				enabled: true,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					updateService.quitAndInstall()
+				}
+			})
+		}
+
+		primary.push({
+			id: 'void.updater.site',
+			enabled: true,
+			label: `Code Site`,
+			tooltip: '',
+			class: undefined,
+			run: () => {
+				const { window } = dom.getActiveWindow()
+				window.open('https://voideditor.com/')
+			}
+		})
+
+		actions = {
+			primary: primary,
+			secondary: [{
+				id: 'void.updater.close',
+				enabled: true,
+				label: `Keep current version`,
+				tooltip: '',
+				class: undefined,
+				run: () => {
+					notifController.close()
+				}
+			}]
+		}
+	}
+	else {
+		actions = undefined
+	}
+
+	const notifController = notifService.notify({
 		severity: Severity.Info,
 		message: message,
 		sticky: true,
@@ -36,15 +126,9 @@ const notifyYesUpdate = (notifService: INotificationService, msg?: string) => {
 	// 	d.dispose()
 	// })
 }
-const notifyNoUpdate = (notifService: INotificationService) => {
-	notifService.notify({
-		severity: Severity.Info,
-		message: 'Code is up-to-date!',
-	})
-}
-const notifyErrChecking = (notifService: INotificationService) => {
-	const message = `Code Error: There was an error checking for updates. If this persists, please get in touch or reinstall Code [here](https://code.hanzo.ai/download-beta)!`
-	notifService.notify({
+const notifyErrChecking = (notifService: INotificationService): INotificationHandle => {
+	const message = `Code Error: There was an error checking for updates. If this persists, please get in touch or reinstall Code [here](https://voideditor.com/download-beta)!`
+	const notifController = notifService.notify({
 		severity: Severity.Info,
 		message: message,
 		sticky: true,
@@ -53,31 +137,31 @@ const notifyErrChecking = (notifService: INotificationService) => {
 }
 
 
-const performVoidCheck = async (
+const performCodeCheck = async (
 	explicit: boolean,
 	notifService: INotificationService,
-	voidUpdateService: IVoidUpdateService,
+	codeUpdateService: ICodeUpdateService,
 	metricsService: IMetricsService,
 	updateService: IUpdateService,
 ): Promise<INotificationHandle | null> => {
 
 	const metricsTag = explicit ? 'Manual' : 'Auto'
 
-	metricsService.capture(`Void Update ${metricsTag}: Checking...`, {})
-	const res = await voidUpdateService.check(explicit)
+	metricsService.capture(`Code Update ${metricsTag}: Checking...`, {})
+	const res = await codeUpdateService.check(explicit)
 	if (!res) {
 		const notifController = notifyErrChecking(notifService);
-		metricsService.capture(`Void Update ${metricsTag}: Error`, { res })
+		metricsService.capture(`Code Update ${metricsTag}: Error`, { res })
 		return notifController
 	}
 	else {
 		if (res.message) {
 			const notifController = notifyUpdate(res, notifService, updateService)
-			metricsService.capture(`Void Update ${metricsTag}: Yes`, { res })
+			metricsService.capture(`Code Update ${metricsTag}: Yes`, { res })
 			return notifController
 		}
 		else {
-			metricsService.capture(`Void Update ${metricsTag}: No`, { res })
+			metricsService.capture(`Code Update ${metricsTag}: No`, { res })
 			return null
 		}
 	}
@@ -102,11 +186,14 @@ registerAction2(class extends Action2 {
 		const metricsService = accessor.get(IMetricsService)
 		const updateService = accessor.get(IUpdateService)
 
-		metricsService.capture('Code Update Manual: Checking...', {})
-		const res = await codeUpdateService.check()
-		if (!res) { notifyErrChecking(notifService); metricsService.capture('Code Update Manual: Error', { res }) }
-		else if (res.hasUpdate) { notifyYesUpdate(notifService, res.message); metricsService.capture('Code Update Manual: Yes', { res }) }
-		else if (!res.hasUpdate) { notifyNoUpdate(notifService); metricsService.capture('Code Update Manual: No', { res }) }
+		const currNotifController = lastNotifController
+
+		const newController = await performCodeCheck(true, notifService, codeUpdateService, metricsService, updateService)
+
+		if (newController) {
+			currNotifController?.close()
+			lastNotifController = newController
+		}
 	}
 })
 
@@ -114,17 +201,15 @@ registerAction2(class extends Action2 {
 class CodeUpdateWorkbenchContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.void.codeUpdate'
 	constructor(
-		@ICodeUpdateService private readonly codeUpdateService: ICodeUpdateService,
-		@IMetricsService private readonly metricsService: IMetricsService,
-		@INotificationService private readonly notifService: INotificationService,
+		@ICodeUpdateService codeUpdateService: ICodeUpdateService,
+		@IMetricsService metricsService: IMetricsService,
+		@INotificationService notifService: INotificationService,
+		@IUpdateService updateService: IUpdateService,
 	) {
 		super()
-		const autoCheck = async () => {
-			this.metricsService.capture('Code Update Startup: Checking...', {})
-			const res = await this.codeUpdateService.check()
-			if (!res) { notifyErrChecking(this.notifService); this.metricsService.capture('Code Update Startup: Error', { res }) }
-			else if (res.hasUpdate) { notifyYesUpdate(this.notifService, res.message); this.metricsService.capture('Code Update Startup: Yes', { res }) }
-			else if (!res.hasUpdate) { this.metricsService.capture('Code Update Startup: No', { res }) } // display nothing if up to date
+
+		const autoCheck = () => {
+			performCodeCheck(false, notifService, codeUpdateService, metricsService, updateService)
 		}
 
 		// check once 5 seconds after mount

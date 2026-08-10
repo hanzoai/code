@@ -209,11 +209,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 	private static readonly _diffLimit = 100000;
 
 	public async $computeMoreMinimalEdits(modelUrl: string, edits: TextEdit[], pretty: boolean): Promise<TextEdit[]> {
-		return this.$Code_computeMoreMinimalEdits(modelUrl, edits, pretty)
-	}
-
-	// Code added this as non async
-	public $Code_computeMoreMinimalEdits(modelUrl: string, edits: TextEdit[], pretty: boolean): TextEdit[] {
 		const model = this._getModel(modelUrl);
 		if (!model) {
 			return edits;

@@ -39,46 +39,17 @@ export enum ThemeSettings {
 }
 
 export enum ThemeSettingDefaults {
-	COLOR_THEME_DARK = 'Default Dark+', // Code changed this. this is the default theme
+	COLOR_THEME_DARK = 'Default Dark+', // Code changed this from 'Default Dark Modern'
 	COLOR_THEME_LIGHT = 'Default Light Modern',
 	COLOR_THEME_HC_DARK = 'Default High Contrast',
 	COLOR_THEME_HC_LIGHT = 'Default High Contrast Light',
 
-	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Code changed this
+	COLOR_THEME_DARK_OLD = 'Default Dark Modern', // Code changed this from 'Default Dark+'
 	COLOR_THEME_LIGHT_OLD = 'Default Light+',
 
 	FILE_ICON_THEME = 'vs-seti',
 	PRODUCT_ICON_THEME = 'Default',
 }
-
-// export const COLOR_THEME_DARK_INITIAL_COLORS = {
-// 	'activityBar.activeBorder': '#0078d4',
-// 	'activityBar.background': '#181818',
-// 	'activityBar.border': '#2b2b2b',
-// 	'activityBar.foreground': '#d7d7d7',
-// 	'activityBar.inactiveForeground': '#868686',
-// 	'editorGroup.border': '#ffffff17',
-// 	'editorGroupHeader.tabsBackground': '#181818',
-// 	'editorGroupHeader.tabsBorder': '#2b2b2b',
-// 	'statusBar.background': '#181818',
-// 	'statusBar.border': '#2b2b2b',
-// 	'statusBar.foreground': '#cccccc',
-// 	'statusBar.noFolderBackground': '#1f1f1f',
-// 	'tab.activeBackground': '#1f1f1f',
-// 	'tab.activeBorder': '#1f1f1f',
-// 	'tab.activeBorderTop': '#0078d4',
-// 	'tab.activeForeground': '#ffffff',
-// 	'tab.border': '#2b2b2b',
-// 	'textLink.foreground': '#4daafc',
-// 	'titleBar.activeBackground': '#181818',
-// 	'titleBar.activeForeground': '#cccccc',
-// 	'titleBar.border': '#2b2b2b',
-// 	'titleBar.inactiveBackground': '#1f1f1f',
-// 	'titleBar.inactiveForeground': '#9d9d9d',
-// 	'welcomePage.tileBackground': '#2b2b2b'
-// };
-
-
 
 export const COLOR_THEME_DARK_INITIAL_COLORS = { // Code changed this to match dark+
 	'activityBar.activeBorder': '#ffffff',

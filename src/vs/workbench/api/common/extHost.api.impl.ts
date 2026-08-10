@@ -221,9 +221,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 	const extHostStatusBar = rpcProtocol.set(ExtHostContext.ExtHostStatusBar, new ExtHostStatusBar(rpcProtocol, extHostCommands.converter));
 	const extHostSpeech = rpcProtocol.set(ExtHostContext.ExtHostSpeech, new ExtHostSpeech(rpcProtocol));
 	const extHostEmbeddings = rpcProtocol.set(ExtHostContext.ExtHostEmbeddings, new ExtHostEmbeddings(rpcProtocol));
-
-	// Code added this:
-	const extHostInlineDiff = rpcProtocol.set(ExtHostContext.ExtHostInlineDiff, new ExtHostInlineDiff(rpcProtocol.getProxy(MainContext.MainThreadInlineDiff), extHostEditors));
+	rpcProtocol.set(ExtHostContext.ExtHostMcp, accessor.get(IExtHostMpcService));
 
 	// Check that no named customers are missing
 	const expected = Object.values<ProxyIdentifier<any>>(ExtHostContext);
@@ -558,17 +556,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			registerCodeLensProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
 				return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
 			},
-
-			// Code added addInlineDiff here:
-			addInlineDiff(editor: vscode.TextEditor, originalText: string, modifiedRange: vscode.Range): void {
-				extHostInlineDiff.addDiff(editor, originalText, modifiedRange)
-			},
-
-			// Code added this (I think will need to add this back when add ctrl+K)
-			// registerCodeCtrlKProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
-			// 	return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);
-			// },
-
 			registerDefinitionProvider(selector: vscode.DocumentSelector, provider: vscode.DefinitionProvider): vscode.Disposable {
 				return extHostLanguageFeatures.registerDefinitionProvider(extension, checkSelector(selector), provider);
 			},
@@ -838,7 +825,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				return extHostWebviewPanels.createWebviewPanel(extension, viewType, title, showOptions, options);
 			},
 			createWebviewTextEditorInset(editor: vscode.TextEditor, line: number, height: number, options?: vscode.WebviewOptions): vscode.WebviewEditorInset {
-				// checkProposedApiEnabled(extension, 'editorInsets'); // Code commented this out
+				checkProposedApiEnabled(extension, 'editorInsets');
 				return extHostEditorInsets.createWebviewEditorInset(editor, line, height, options, extension);
 			},
 			createTerminal(nameOrOptions?: vscode.TerminalOptions | vscode.ExtensionTerminalOptions | string, shellPath?: string, shellArgs?: readonly string[] | string): vscode.Terminal {

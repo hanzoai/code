@@ -89,7 +89,7 @@ export class ExtHostNotebookKernels implements ExtHostNotebookKernelsShape {
 					return v;
 				})
 			],
-			ApiCommandResult.Code);
+			ApiCommandResult.Void);
 
 		const requestKernelVariablesApiCommand = new ApiCommand(
 			'vscode.executeNotebookVariableProvider',

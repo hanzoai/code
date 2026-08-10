@@ -49,7 +49,7 @@ class CodeSettingsInput extends EditorInput {
 	}
 
 	override getName(): string {
-		return nls.localize('codeSettingsInputsName', 'Code Settings');
+		return nls.localize('codeSettingsInputsName', 'Code\'s Settings');
 	}
 
 	override getIcon() {
@@ -90,7 +90,8 @@ class CodeSettingsPane extends EditorPane {
 
 		// Mount React into the scrollable content
 		this.instantiationService.invokeFunction(accessor => {
-			const disposables: IDisposable[] | undefined = mountCodeSettings(settingsElt, accessor);
+			const disposeFn = mountCodeSettings(settingsElt, accessor)?.dispose;
+			this._register(toDisposable(() => disposeFn?.()))
 
 			// setTimeout(() => { // this is a complete hack and I don't really understand how scrollbar works here
 			// 	this._scrollbar?.scanDomNode();
@@ -111,7 +112,7 @@ class CodeSettingsPane extends EditorPane {
 
 // register Settings pane
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
-	EditorPaneDescriptor.create(CodeSettingsPane, CodeSettingsPane.ID, nls.localize('CodeSettingsPane', "Code Settings Pane")),
+	EditorPaneDescriptor.create(CodeSettingsPane, CodeSettingsPane.ID, nls.localize('CodeSettingsPane', "Code\'s Settings Pane")),
 	[new SyncDescriptor(CodeSettingsInput)]
 );
 
@@ -144,17 +145,23 @@ registerAction2(class extends Action2 {
 
 		const instantiationService = accessor.get(IInstantiationService);
 
-		// close all instances if found
-		const openEditors = editorService.findEditors(CodeSettingsInput.RESOURCE);
-		if (openEditors.length > 0) {
-			await editorService.closeEditors(openEditors);
+		// if is open, close it
+		const openEditors = editorService.findEditors(CodeSettingsInput.RESOURCE); // should only have 0 or 1 elements...
+		if (openEditors.length !== 0) {
+			const openEditor = openEditors[0].editor
+			const isCurrentlyOpen = editorService.activeEditor?.resource?.fsPath === openEditor.resource?.fsPath
+			if (isCurrentlyOpen)
+				await editorService.closeEditors(openEditors)
+			else
+				await editorGroupService.activeGroup.openEditor(openEditor)
 			return;
 		}
 
 
 		// else open it
 		const input = instantiationService.createInstance(CodeSettingsInput);
-		await editorService.openEditor(input);
+
+		await editorGroupService.activeGroup.openEditor(input);
 	}
 })
 
@@ -165,7 +172,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: CODE_OPEN_SETTINGS_ACTION_ID,
-			title: nls.localize2('codeSettings', "Code: Open Settings"),
+			title: nls.localize2('codeSettingsAction2', "Code: Open Settings"),
 			f1: true,
 			icon: Codicon.settingsGear,
 		});
@@ -195,7 +202,7 @@ MenuRegistry.appendMenuItem(MenuId.GlobalActivity, {
 	group: '0_command',
 	command: {
 		id: CODE_TOGGLE_SETTINGS_ACTION_ID,
-		title: nls.localize('codeSettings', "Code Settings")
+		title: nls.localize('codeSettingsActionGear', "Code\'s Settings")
 	},
 	order: 1
 });

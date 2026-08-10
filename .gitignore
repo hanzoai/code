@@ -22,9 +22,9 @@ product.overrides.json
 *.snap.actual
 .vscode-test
 
-# Void added these:
+# Code added these:
 .tmp/
 .tmp2/
 .tool-versions
-src/vs/workbench/contrib/void/browser/react/out/**
-src/vs/workbench/contrib/void/browser/react/src2/**
+src/vs/workbench/contrib/code/browser/react/out/**
+src/vs/workbench/contrib/code/browser/react/src2/**

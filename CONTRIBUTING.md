@@ -149,8 +149,8 @@ Edit: far too many changes to track... this is old
 
 - src/vs/workbench/api/common/{extHost.api.impl.ts | extHostApiCommands.ts}
 - src/vs/workbench/workbench.common.main.ts
-- src/vs/workbench/contrib/void/\*
-- extensions/void/\*
+- src/vs/workbench/contrib/code/\*
+- extensions/code/\*
 
 - .github/\*
 - .vscode/settings/\*

@@ -7,7 +7,7 @@ import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { Diff, DiffArea, VoidFileSnapshot } from '../common/editCodeServiceTypes.js';
+import { Diff, DiffArea, CodeFileSnapshot } from '../common/editCodeServiceTypes.js';
 
 
 export type StartBehavior = 'accept-conflicts' | 'reject-conflicts' | 'keep-conflicts'
@@ -73,6 +73,6 @@ export interface IEditCodeService {
 	interruptURIStreaming(opts: { uri: URI }): void;
 
 	// testDiffs(): void;
-	getVoidFileSnapshot(uri: URI): VoidFileSnapshot;
-	restoreVoidFileSnapshot(uri: URI, snapshot: VoidFileSnapshot): void;
+	getCodeFileSnapshot(uri: URI): CodeFileSnapshot;
+	restoreCodeFileSnapshot(uri: URI, snapshot: CodeFileSnapshot): void;
 }

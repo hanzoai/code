@@ -354,7 +354,8 @@ type InputBox2Props = {
 	onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
 	onChangeHeight?: (newHeight: number) => void;
 }
-export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, fnsRef, className, onKeyDown, onChangeText }, ref) {
+export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(function X({ initValue, placeholder, multiline, enableAtToMention, fnsRef, className, onKeyDown, onFocus, onBlur, onChangeText }, ref) {
+
 
 	// mirrors whatever is in ref
 	const accessor = useAccessor()
@@ -752,7 +753,7 @@ export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 			disabled={!isEnabled}
 
-			className={`w-full resize-none max-h-[500px] overflow-y-auto text-code-fg-1 placeholder:text-code-fg-3 ${className}`}
+			className={`w-full resize-none max-h-[500px] overflow-y-auto text-void-fg-1 placeholder:text-void-fg-3 ${className}`}
 			style={{
 				// defaultInputBoxStyles
 				background: asCssVariable(inputBackground),
@@ -876,7 +877,72 @@ export const CodeInputBox2 = forwardRef<HTMLTextAreaElement, InputBox2Props>(fun
 
 })
 
-export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, multiline }: {
+
+export const CodeSimpleInputBox = ({ value, onChangeValue, placeholder, className, disabled, passwordBlur, compact, ...inputProps }: {
+	value: string;
+	onChangeValue: (value: string) => void;
+	placeholder: string;
+	className?: string;
+	disabled?: boolean;
+	compact?: boolean;
+	passwordBlur?: boolean;
+} & React.InputHTMLAttributes<HTMLInputElement>) => {
+	// Create a ref for the input element to maintain the same DOM node between renders
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	// Track if we need to restore selection
+	const selectionRef = useRef<{ start: number | null, end: number | null }>({
+		start: null,
+		end: null
+	});
+
+	// Handle value changes without recreating the input
+	useEffect(() => {
+		const input = inputRef.current;
+		if (input && input.value !== value) {
+			// Store current selection positions
+			selectionRef.current.start = input.selectionStart;
+			selectionRef.current.end = input.selectionEnd;
+
+			// Update the value
+			input.value = value;
+
+			// Restore selection if we had it before
+			if (selectionRef.current.start !== null && selectionRef.current.end !== null) {
+				input.setSelectionRange(selectionRef.current.start, selectionRef.current.end);
+			}
+		}
+	}, [value]);
+
+	const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		onChangeValue(e.target.value);
+	}, [onChangeValue]);
+
+	return (
+		<input
+			ref={inputRef}
+			defaultValue={value} // Use defaultValue instead of value to avoid recreation
+			onChange={handleChange}
+			placeholder={placeholder}
+			disabled={disabled}
+			className={`w-full resize-none bg-void-bg-1 text-void-fg-1 placeholder:text-void-fg-3 border border-void-border-2 focus:border-void-border-1
+				${compact ? 'py-1 px-2' : 'py-2 px-4 '}
+				rounded
+				${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+				${className}`}
+			style={{
+				...passwordBlur && { WebkitTextSecurity: 'disc' },
+				background: asCssVariable(inputBackground),
+				color: asCssVariable(inputForeground)
+			}}
+			{...inputProps}
+			type={undefined} // VS Code is doing some annoyingness that breaks paste if this is defined
+		/>
+	);
+};
+
+
+export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, placeholder, isPasswordField, multiline }: {
 	onChangeText: (value: string) => void;
 	styles?: Partial<IInputBoxStyles>,
 	onCreateInstance?: (instance: InputBox) => void | IDisposable[];
@@ -891,8 +957,8 @@ export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	const contextViewProvider = accessor.get('IContextViewService')
 	return <WidgetComponent
 		className='
-			bg-code-bg-1
-			@@[&_::placeholder]:!code-text-code-fg-3
+			bg-void-bg-1
+			@@void-force-child-placeholder-void-fg-1
 		'
 		ctor={InputBox}
 		propsFn={useCallback((container) => [
@@ -934,6 +1000,168 @@ export const CodeInputBox = ({ onChangeText, onCreateInstance, inputBoxRef, plac
 	/>
 };
 
+
+
+
+
+export const CodeSlider = ({
+	value,
+	onChange,
+	size = 'md',
+	disabled = false,
+	min = 0,
+	max = 7,
+	step = 1,
+	className = '',
+	width = 200,
+}: {
+	value: number;
+	onChange: (value: number) => void;
+	disabled?: boolean;
+	size?: 'xxs' | 'xs' | 'sm' | 'sm+' | 'md';
+	min?: number;
+	max?: number;
+	step?: number;
+	className?: string;
+	width?: number;
+}) => {
+	// Calculate percentage for position
+	const percentage = ((value - min) / (max - min)) * 100;
+
+	// Handle track click
+	const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+		if (disabled) return;
+
+		const rect = e.currentTarget.getBoundingClientRect();
+		const clickPosition = e.clientX - rect.left;
+		const trackWidth = rect.width;
+
+		// Calculate new value
+		const newPercentage = Math.max(0, Math.min(1, clickPosition / trackWidth));
+		const rawValue = min + newPercentage * (max - min);
+
+		// Special handling to ensure max value is always reachable
+		if (rawValue >= max - step / 2) {
+			onChange(max);
+			return;
+		}
+
+		// Normal step calculation
+		const steppedValue = Math.round((rawValue - min) / step) * step + min;
+		const clampedValue = Math.max(min, Math.min(max, steppedValue));
+
+		onChange(clampedValue);
+	};
+
+	// Helper function to handle thumb dragging that respects steps and max
+	const handleThumbDrag = (moveEvent: MouseEvent, track: Element) => {
+		if (!track) return;
+
+		const rect = (track as HTMLElement).getBoundingClientRect();
+		const movePosition = moveEvent.clientX - rect.left;
+		const trackWidth = rect.width;
+
+		// Calculate new value
+		const newPercentage = Math.max(0, Math.min(1, movePosition / trackWidth));
+		const rawValue = min + newPercentage * (max - min);
+
+		// Special handling to ensure max value is always reachable
+		if (rawValue >= max - step / 2) {
+			onChange(max);
+			return;
+		}
+
+		// Normal step calculation
+		const steppedValue = Math.round((rawValue - min) / step) * step + min;
+		const clampedValue = Math.max(min, Math.min(max, steppedValue));
+
+		onChange(clampedValue);
+	};
+
+	return (
+		<div className={`inline-flex items-center flex-shrink-0 ${className}`}>
+			{/* Outer container with padding to account for thumb overhang */}
+			<div className={`relative flex-shrink-0 ${disabled ? 'opacity-25' : ''}`}
+				style={{
+					width,
+					// Add horizontal padding equal to half the thumb width
+					// paddingLeft: thumbSizePx / 2,
+					// paddingRight: thumbSizePx / 2
+				}}>
+				{/* Track container with adjusted width */}
+				<div className="relative w-full">
+					{/* Invisible wider clickable area that sits above the track */}
+					<div
+						className="absolute w-full cursor-pointer"
+						style={{
+							height: '16px',
+							top: '50%',
+							transform: 'translateY(-50%)',
+							zIndex: 1
+						}}
+						onClick={handleTrackClick}
+					/>
+
+					{/* Track */}
+					<div
+						className={`relative ${size === 'xxs' ? 'h-0.5' :
+							size === 'xs' ? 'h-1' :
+								size === 'sm' ? 'h-1.5' :
+									size === 'sm+' ? 'h-2' : 'h-2.5'
+							} bg-void-bg-2 rounded-full cursor-pointer`}
+						onClick={handleTrackClick}
+					>
+						{/* Filled part of track */}
+						<div
+							className={`absolute left-0 ${size === 'xxs' ? 'h-0.5' :
+								size === 'xs' ? 'h-1' :
+									size === 'sm' ? 'h-1.5' :
+										size === 'sm+' ? 'h-2' : 'h-2.5'
+								} bg-void-fg-1 rounded-full`}
+							style={{ width: `${percentage}%` }}
+						/>
+					</div>
+
+					{/* Thumb */}
+					<div
+						className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2
+							${size === 'xxs' ? 'h-2 w-2' :
+								size === 'xs' ? 'h-2.5 w-2.5' :
+									size === 'sm' ? 'h-3 w-3' :
+										size === 'sm+' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+							}
+							bg-void-fg-1 rounded-full shadow-md ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
+							border border-void-fg-1`}
+						style={{ left: `${percentage}%`, zIndex: 2 }}  // Ensure thumb is above the invisible clickable area
+						onMouseDown={(e) => {
+							if (disabled) return;
+
+							const track = e.currentTarget.previousElementSibling;
+
+							const handleMouseMove = (moveEvent: MouseEvent) => {
+								handleThumbDrag(moveEvent, track as Element);
+							};
+
+							const handleMouseUp = () => {
+								document.removeEventListener('mousemove', handleMouseMove);
+								document.removeEventListener('mouseup', handleMouseUp);
+								document.body.style.cursor = '';
+								document.body.style.userSelect = '';
+							};
+
+							document.body.style.userSelect = 'none';
+							document.body.style.cursor = 'grabbing';
+							document.addEventListener('mousemove', handleMouseMove);
+							document.addEventListener('mouseup', handleMouseUp);
+
+							e.preventDefault();
+						}}
+					/>
+				</div>
+			</div>
+		</div>
+	);
+};
 
 
 
@@ -1023,7 +1251,7 @@ export const CodeCheckBox = ({ label, value, onClick, className }: { label: stri
 
 
 
-export const CodeCustomSelectBox = <T extends any>({
+export const CodeCustomDropdownBox = <T extends NonNullable<any>>({
 	options,
 	selectedOption,
 	onChangeOption,
@@ -1188,7 +1416,7 @@ export const CodeCustomSelectBox = <T extends any>({
 			{isOpen && (
 				<div
 					ref={refs.setFloating}
-					className="z-10 bg-code-bg-1 border-code-border-1 border overflow-hidden rounded shadow-lg"
+					className="z-[100] bg-void-bg-1 border-void-border-3 border rounded shadow-lg"
 					style={{
 						position: strategy,
 						top: y ?? 0,
@@ -1213,8 +1441,7 @@ export const CodeCustomSelectBox = <T extends any>({
 									key={optionName}
 									className={`flex items-center px-2 py-1 pr-4 cursor-pointer whitespace-nowrap
 									transition-all duration-100
-									bg-code-bg-1
-									${thisOptionIsSelected ? 'bg-code-bg-2' : 'hover:bg-code-bg-2'}
+									${thisOptionIsSelected ? 'bg-blue-500 text-white/80' : 'hover:bg-blue-500 hover:text-white/80'}
 								`}
 									onClick={() => {
 										onChangeOption(option);
@@ -1266,9 +1493,9 @@ export const _CodeSelectBox = <T,>({ onChangeSelection, onCreateInstance, select
 	return <WidgetComponent
 		className={`
 			@@select-child-restyle
-			@@[&_select]:!code-text-code-fg-3
-			@@[&_select]:!code-text-xs
-			!text-code-fg-3
+			@@[&_select]:!void-text-void-fg-3
+			@@[&_select]:!void-text-xs
+			!text-void-fg-3
 			${className ?? ''}
 		`}
 		ctor={SelectBox}
@@ -1354,8 +1581,8 @@ const normalizeIndentation = (code: string): string => {
 
 
 const modelOfEditorId: { [id: string]: ITextModel | undefined } = {}
-export type CodeCodeEditorProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
-export const CodeCodeEditor = ({ initValue, language, maxHeight, showScrollbars }: CodeCodeEditorProps) => {
+export type BlockCodeProps = { initValue: string, language?: string, maxHeight?: number, showScrollbars?: boolean }
+export const BlockCode = ({ initValue, language, maxHeight, showScrollbars }: BlockCodeProps) => {
 
 	initValue = normalizeIndentation(initValue)
 
@@ -1388,7 +1615,7 @@ export const CodeCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 		if (language) modelRef.current?.setLanguage(language)
 	}, [language])
 
-	return <div ref={divRef} className='relative z-0 px-2 py-1 bg-code-bg-3'>
+	return <div ref={divRef} className='relative z-0 px-2 py-1 bg-void-bg-3'>
 		<WidgetComponent
 			className='@@bg-editor-style-override' // text-sm
 			ctor={useCallback((container) => {
@@ -1489,7 +1716,7 @@ export const CodeCodeEditor = ({ initValue, language, maxHeight, showScrollbars 
 }
 
 
-export const CodeButton = ({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) => {
+export const CodeButtonBgDarken = ({ children, disabled, onClick, className }: { children: React.ReactNode; disabled?: boolean; onClick: () => void; className?: string }) => {
 	return <button disabled={disabled}
 		className={`px-3 py-1 bg-black/10 dark:bg-white/10 rounded-sm overflow-hidden whitespace-nowrap flex items-center justify-center ${className || ''}`}
 		onClick={onClick}
@@ -1733,7 +1960,7 @@ const SingleDiffEditor = ({ block, lang }: { block: ExtractedSearchReplaceBlock,
  *   - searchReplaceBlocks: string in search/replace format (from LLM)
  *   - language?: string (optional, fallback to 'plaintext')
  */
-export const VoidDiffEditor = ({ uri, searchReplaceBlocks, language }: { uri?: any, searchReplaceBlocks: string, language?: string }) => {
+export const CodeDiffEditor = ({ uri, searchReplaceBlocks, language }: { uri?: any, searchReplaceBlocks: string, language?: string }) => {
 	const accessor = useAccessor();
 	const languageService = accessor.get('ILanguageService');
 

@@ -3,20 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import React, { useState, useEffect } from 'react'
-import { ThreadStreamState, ThreadsState } from '../../../chatThreadService.js'
-import { RefreshableProviderName, SettingsOfProvider } from '../../../../../../../platform/void/common/codeSettingsTypes.js'
-import { IDisposable } from '../../../../../../../base/common/lifecycle.js'
-import { CodeSidebarState } from '../../../sidebarStateService.js'
-import { CodeSettingsState } from '../../../../../../../platform/void/common/codeSettingsService.js'
+import React, { useState, useEffect, useCallback } from 'react'
+import { MCPUserState, RefreshableProviderName, SettingsOfProvider } from '../../../../../../../workbench/contrib/code/common/codeSettingsTypes.js'
+import { DisposableStore, IDisposable } from '../../../../../../../base/common/lifecycle.js'
+import { CodeSettingsState } from '../../../../../../../workbench/contrib/code/common/codeSettingsService.js'
 import { ColorScheme } from '../../../../../../../platform/theme/common/theme.js'
-import { CodeUriState } from '../../../codeUriStateService.js';
-import { CodeQuickEditState } from '../../../quickEditStateService.js'
-import { RefreshModelStateOfProvider } from '../../../../../../../platform/void/common/refreshModelService.js'
-
-
-
-
+import { RefreshModelStateOfProvider } from '../../../../../../../workbench/contrib/code/common/refreshModelService.js'
 
 import { ServicesAccessor } from '../../../../../../../editor/browser/editorExtensions.js';
 import { IExplorerService } from '../../../../../../../workbench/contrib/files/browser/files.js'
@@ -26,14 +18,11 @@ import { IContextViewService, IContextMenuService } from '../../../../../../../p
 import { IFileService } from '../../../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../../../platform/hover/browser/hover.js';
 import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
-import { ILLMMessageService } from '../../../../../../../platform/void/common/llmMessageService.js';
-import { IRefreshModelService } from '../../../../../../../platform/void/common/refreshModelService.js';
-import { ICodeSettingsService } from '../../../../../../../platform/void/common/codeSettingsService.js';
-import { IInlineDiffsService } from '../../../inlineDiffsService.js';
-import { ICodeUriStateService } from '../../../codeUriStateService.js';
-import { IQuickEditStateService } from '../../../quickEditStateService.js';
-import { ISidebarStateService } from '../../../sidebarStateService.js';
-import { IChatThreadService } from '../../../chatThreadService.js';
+import { ILLMMessageService } from '../../../../common/sendLLMMessageService.js';
+import { IRefreshModelService } from '../../../../../../../workbench/contrib/code/common/refreshModelService.js';
+import { ICodeSettingsService } from '../../../../../../../workbench/contrib/code/common/codeSettingsService.js';
+import { IExtensionTransferService } from '../../../../../../../workbench/contrib/code/browser/extensionTransferService.js'
+
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js'
 import { ICodeEditorService } from '../../../../../../../editor/browser/services/codeEditorService.js'
 import { ICommandService } from '../../../../../../../platform/commands/common/commands.js'
@@ -47,14 +36,14 @@ import { IKeybindingService } from '../../../../../../../platform/keybinding/com
 import { IEnvironmentService } from '../../../../../../../platform/environment/common/environment.js'
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js'
 import { IPathService } from '../../../../../../../workbench/services/path/common/pathService.js'
-import { IMetricsService } from '../../../../../../../workbench/contrib/void/common/metricsService.js'
+import { IMetricsService } from '../../../../../../../workbench/contrib/code/common/metricsService.js'
 import { URI } from '../../../../../../../base/common/uri.js'
 import { IChatThreadService, ThreadsState, ThreadStreamState } from '../../../chatThreadService.js'
 import { ITerminalToolService } from '../../../terminalToolService.js'
 import { ILanguageService } from '../../../../../../../editor/common/languages/language.js'
-import { IVoidModelService } from '../../../../common/voidModelService.js'
+import { ICodeModelService } from '../../../../common/codeModelService.js'
 import { IWorkspaceContextService } from '../../../../../../../platform/workspace/common/workspace.js'
-import { IVoidCommandBarService } from '../../../voidCommandBarService.js'
+import { ICodeCommandBarService } from '../../../codeCommandBarService.js'
 import { INativeHostService } from '../../../../../../../platform/native/common/native.js';
 import { IEditCodeService } from '../../../editCodeServiceInterface.js'
 import { IToolsService } from '../../../toolsService.js'
@@ -71,14 +60,6 @@ import { OPT_OUT_KEY } from '../../../../common/storageKeys.js'
 
 // even if React hasn't mounted yet, the variables are always updated to the latest state.
 // React listens by adding a setState function to these listeners.
-let uriState: CodeUriState
-const uriStateListeners: Set<(s: CodeUriState) => void> = new Set()
-
-let quickEditState: CodeQuickEditState
-const quickEditStateListeners: Set<(s: CodeQuickEditState) => void> = new Set()
-
-let sidebarState: CodeSidebarState
-const sidebarStateListeners: Set<(s: CodeSidebarState) => void> = new Set()
 
 let chatThreadsState: ThreadsState
 const chatThreadsStateListeners: Set<(s: ThreadsState) => void> = new Set()
@@ -109,30 +90,20 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 
 	const disposables: IDisposable[] = []
 
-	// don't register services twice
-	if (wasCalled) {
-		return
-		// console.error(`⚠️ Code _registerServices was called again! It should only be called once.`)
-	}
-	wasCalled = true
-
 	_registerAccessor(accessor)
 
 	const stateServices = {
-		uriStateService: accessor.get(ICodeUriStateService),
-		quickEditStateService: accessor.get(IQuickEditStateService),
-		sidebarStateService: accessor.get(ISidebarStateService),
 		chatThreadsStateService: accessor.get(IChatThreadService),
 		settingsStateService: accessor.get(ICodeSettingsService),
 		refreshModelService: accessor.get(IRefreshModelService),
 		themeService: accessor.get(IThemeService),
 		editCodeService: accessor.get(IEditCodeService),
-		voidCommandBarService: accessor.get(IVoidCommandBarService),
+		codeCommandBarService: accessor.get(ICodeCommandBarService),
 		modelService: accessor.get(IModelService),
 		mcpService: accessor.get(IMCPService),
 	}
 
-	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, voidCommandBarService, modelService, mcpService } = stateServices
+	const { settingsStateService, chatThreadsStateService, refreshModelService, themeService, editCodeService, codeCommandBarService, modelService, mcpService } = stateServices
 
 
 
@@ -188,13 +159,13 @@ export const _registerServices = (accessor: ServicesAccessor) => {
 	)
 
 	disposables.push(
-		voidCommandBarService.onDidChangeState(({ uri }) => {
+		codeCommandBarService.onDidChangeState(({ uri }) => {
 			commandBarURIStateListeners.forEach(l => l(uri));
 		})
 	)
 
 	disposables.push(
-		voidCommandBarService.onDidChangeActiveURI(({ uri }) => {
+		codeCommandBarService.onDidChangeActiveURI(({ uri }) => {
 			activeURIListeners.forEach(l => l(uri));
 		})
 	)
@@ -223,10 +194,7 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		ILLMMessageService: accessor.get(ILLMMessageService),
 		IRefreshModelService: accessor.get(IRefreshModelService),
 		ICodeSettingsService: accessor.get(ICodeSettingsService),
-		IInlineDiffsService: accessor.get(IInlineDiffsService),
-		ICodeUriStateService: accessor.get(ICodeUriStateService),
-		IQuickEditStateService: accessor.get(IQuickEditStateService),
-		ISidebarStateService: accessor.get(ISidebarStateService),
+		IEditCodeService: accessor.get(IEditCodeService),
 		IChatThreadService: accessor.get(IChatThreadService),
 
 		IInstantiationService: accessor.get(IInstantiationService),
@@ -248,10 +216,10 @@ const getReactAccessor = (accessor: ServicesAccessor) => {
 		IMetricsService: accessor.get(IMetricsService),
 		ITerminalToolService: accessor.get(ITerminalToolService),
 		ILanguageService: accessor.get(ILanguageService),
-		IVoidModelService: accessor.get(IVoidModelService),
+		ICodeModelService: accessor.get(ICodeModelService),
 		IWorkspaceContextService: accessor.get(IWorkspaceContextService),
 
-		IVoidCommandBarService: accessor.get(IVoidCommandBarService),
+		ICodeCommandBarService: accessor.get(ICodeCommandBarService),
 		INativeHostService: accessor.get(INativeHostService),
 		IToolsService: accessor.get(IToolsService),
 		IConvertToLLMMessageService: accessor.get(IConvertToLLMMessageService),
@@ -395,7 +363,7 @@ export const useCommandBarURIListener = (listener: (uri: URI) => void) => {
 };
 export const useCommandBarState = () => {
 	const accessor = useAccessor()
-	const commandBarService = accessor.get('IVoidCommandBarService')
+	const commandBarService = accessor.get('ICodeCommandBarService')
 	const [s, ss] = useState({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
 	const listener = useCallback(() => {
 		ss({ stateOfURI: commandBarService.stateOfURI, sortedURIs: commandBarService.sortedURIs });
@@ -410,7 +378,7 @@ export const useCommandBarState = () => {
 // roughly gets the active URI - this is used to get the history of recent URIs
 export const useActiveURI = () => {
 	const accessor = useAccessor()
-	const commandBarService = accessor.get('IVoidCommandBarService')
+	const commandBarService = accessor.get('ICodeCommandBarService')
 	const [s, ss] = useState(commandBarService.activeURI)
 	useEffect(() => {
 		const listener = () => { ss(commandBarService.activeURI) }

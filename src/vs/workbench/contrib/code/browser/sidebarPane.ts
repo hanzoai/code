@@ -108,7 +108,7 @@ export const CODE_VIEW_ID = CODE_VIEW_CONTAINER_ID
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 const container = viewContainerRegistry.registerViewContainer({
 	id: CODE_VIEW_CONTAINER_ID,
-	title: nls.localize2('voidContainer', 'Code Chat'), // this is used to say "Code" (Ctrl + L)
+	title: nls.localize2('codeContainer', 'Chat'), // this is used to say "Code" (Ctrl + L)
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [CODE_VIEW_CONTAINER_ID, {
 		mergeViewWithContainerWhenSingleView: true,
 		orientation: Orientation.HORIZONTAL,
