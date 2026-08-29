@@ -37,19 +37,19 @@
     "Programming Languages"
   ],
   "dependencies": {
-    "@vscode/extension-telemetry": "^0.9.8",
-    "@vscode/sync-api-client": "^0.7.2",
-    "@vscode/sync-api-common": "^0.7.2",
-    "@vscode/sync-api-service": "^0.7.3",
+    "@vscode/extension-telemetry": "^1.5.2",
+    "@vscode/sync-api-client": "^0.9.1",
+    "@vscode/sync-api-common": "^0.9.1",
+    "@vscode/sync-api-service": "^0.9.1",
     "@vscode/ts-package-manager": "^0.0.2",
-    "jsonc-parser": "^3.2.0",
-    "semver": "7.5.2",
-    "vscode-tas-client": "^0.1.84",
-    "vscode-uri": "^3.0.3"
+    "jsonc-parser": "^3.3.1",
+    "semver": "^7.8.5",
+    "vscode-tas-client": "^0.3.1",
+    "vscode-uri": "^3.2.0"
   },
   "devDependencies": {
-    "@types/node": "20.x",
-    "@types/semver": "^5.5.0"
+    "@types/node": "26.4.0",
+    "@types/semver": "^7.8.0"
   },
   "scripts": {
     "vscode:prepublish": "node ../../node_modules/gulp/bin/gulp.js --gulpfile ../../build/gulpfile.extensions.js compile-extension:typescript-language-features",
@@ -824,15 +824,15 @@
           "enumDescriptions": [
             "%typescript.locale.auto%",
             "Deutsch",
-            "español",
+            "espa\u00f1ol",
             "English",
-            "français",
+            "fran\u00e7ais",
             "italiano",
-            "日本語",
-            "한국어",
-            "русский",
-            "中文(简体)",
-            "中文(繁體)"
+            "\u65e5\u672c\u8a9e",
+            "\ud55c\uad6d\uc5b4",
+            "\u0440\u0443\u0441\u0441\u043a\u0438\u0439",
+            "\u4e2d\u6587(\u7b80\u4f53)",
+            "\u4e2d\u6587(\u7e41\u9ad4)"
           ],
           "markdownDescription": "%typescript.locale%",
           "scope": "window"
@@ -1762,10 +1762,10 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": {
-            "regexp": "^\\s*(?:message TS6032:|\\[?\\D*.{1,2}[:.].{1,2}[:.].{1,2}\\D*(├\\D*\\d{1,2}\\D+┤)?(?:\\]| -)) (Starting compilation in watch mode|File change detected\\. Starting incremental compilation)\\.\\.\\."
+            "regexp": "^\\s*(?:message TS6032:|\\[?\\D*.{1,2}[:.].{1,2}[:.].{1,2}\\D*(\u251c\\D*\\d{1,2}\\D+\u2524)?(?:\\]| -)) (Starting compilation in watch mode|File change detected\\. Starting incremental compilation)\\.\\.\\."
           },
           "endsPattern": {
-            "regexp": "^\\s*(?:message TS6042:|\\[?\\D*.{1,2}[:.].{1,2}[:.].{1,2}\\D*(├\\D*\\d{1,2}\\D+┤)?(?:\\]| -)) (?:Compilation complete\\.|Found \\d+ errors?\\.) Watching for file changes\\."
+            "regexp": "^\\s*(?:message TS6042:|\\[?\\D*.{1,2}[:.].{1,2}[:.].{1,2}\\D*(\u251c\\D*\\d{1,2}\\D+\u2524)?(?:\\]| -)) (?:Compilation complete\\.|Found \\d+ errors?\\.) Watching for file changes\\."
           }
         }
       }

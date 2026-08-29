@@ -212,7 +212,7 @@
     ]
   },
   "devDependencies": {
-    "@types/node": "20.x"
+    "@types/node": "26.4.0"
   },
   "repository": {
     "type": "git",
