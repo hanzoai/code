@@ -10,14 +10,14 @@
   "main": "./out/node/cssServerMain",
   "browser": "./dist/browser/cssServerMain",
   "dependencies": {
-    "@vscode/l10n": "^0.0.18",
-    "vscode-css-languageservice": "^6.3.10",
-    "vscode-languageserver": "^10.1.1",
-    "vscode-uri": "^3.2.0"
+    "@vscode/l10n": "catalog:",
+    "vscode-css-languageservice": "catalog:",
+    "vscode-languageserver": "catalog:",
+    "vscode-uri": "catalog:"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "26.4.0"
+    "@types/mocha": "catalog:",
+    "@types/node": "catalog:"
   },
   "scripts": {
     "compile": "gulp compile-extension:css-language-features-server",

@@ -168,12 +168,12 @@
     ]
   },
   "dependencies": {
-    "@vscode/extension-telemetry": "^1.5.2",
-    "request-light": "^0.8.0",
-    "vscode-languageclient": "^10.1.1"
+    "@vscode/extension-telemetry": "catalog:",
+    "request-light": "catalog:",
+    "vscode-languageclient": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "26.4.0"
+    "@types/node": "catalog:"
   },
   "repository": {
     "type": "git",

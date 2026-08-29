@@ -77,13 +77,13 @@
     "test": "npx mocha --ui tdd 'out/*.test.js'"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "26.4.0"
+    "@types/mocha": "catalog:",
+    "@types/node": "catalog:"
   },
   "dependencies": {
-    "@jridgewell/trace-mapping": "^0.3.31",
-    "ansi-styles": "^7.0.0",
-    "cockatiel": "^4.0.0",
-    "istanbul-to-vscode": "^2.1.1"
+    "@jridgewell/trace-mapping": "catalog:",
+    "ansi-styles": "catalog:",
+    "cockatiel": "catalog:",
+    "istanbul-to-vscode": "catalog:"
   }
 }

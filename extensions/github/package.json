@@ -227,14 +227,14 @@
     "watch": "gulp watch-extension:github"
   },
   "dependencies": {
-    "@octokit/graphql": "^9.0.4",
-    "@octokit/graphql-schema": "^15.26.1",
-    "@octokit/rest": "^22.0.1",
-    "tunnel": "^0.0.6",
-    "@vscode/extension-telemetry": "^1.5.2"
+    "@octokit/graphql": "catalog:",
+    "@octokit/graphql-schema": "catalog:",
+    "@octokit/rest": "catalog:",
+    "tunnel": "catalog:",
+    "@vscode/extension-telemetry": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "26.4.0"
+    "@types/node": "catalog:"
   },
   "repository": {
     "type": "git",

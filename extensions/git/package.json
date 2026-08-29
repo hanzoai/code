@@ -3566,20 +3566,20 @@
     ]
   },
   "dependencies": {
-    "@joaomoreno/unique-names-generator": "^5.2.0",
-    "@vscode/extension-telemetry": "^1.5.2",
-    "byline": "^5.0.0",
-    "file-type": "^22.0.2",
-    "picomatch": "^4.0.7",
-    "vscode-uri": "^3.2.0",
-    "which": "^7.0.0"
+    "@joaomoreno/unique-names-generator": "catalog:",
+    "@vscode/extension-telemetry": "catalog:",
+    "byline": "catalog:",
+    "file-type": "catalog:",
+    "picomatch": "catalog:",
+    "vscode-uri": "catalog:",
+    "which": "catalog:"
   },
   "devDependencies": {
-    "@types/byline": "^4.2.36",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "26.4.0",
-    "@types/picomatch": "^4.0.3",
-    "@types/which": "^3.0.4"
+    "@types/byline": "catalog:",
+    "@types/mocha": "catalog:",
+    "@types/node": "catalog:",
+    "@types/picomatch": "catalog:",
+    "@types/which": "catalog:"
   },
   "repository": {
     "type": "git",

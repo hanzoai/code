@@ -161,12 +161,12 @@
     "build-notebook": "node ./esbuild"
   },
   "dependencies": {
-    "@enonic/fnv-plus": "^1.3.0",
-    "detect-indent": "^7.0.2"
+    "@enonic/fnv-plus": "catalog:",
+    "detect-indent": "catalog:"
   },
   "devDependencies": {
-    "@jupyterlab/nbformat": "^4.6.3",
-    "@types/markdown-it": "^14.2.0"
+    "@jupyterlab/nbformat": "catalog:",
+    "@types/markdown-it": "catalog:"
   },
   "repository": {
     "type": "git",

@@ -111,14 +111,14 @@
     "build-notebook": "node ./esbuild"
   },
   "devDependencies": {
-    "@types/markdown-it": "^14.2.0",
-    "@types/vscode-notebook-renderer": "^1.72.4"
+    "@types/markdown-it": "catalog:",
+    "@types/vscode-notebook-renderer": "catalog:"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/microsoft/vscode.git"
   },
   "dependencies": {
-    "@vscode/markdown-it-katex": "^1.1.2"
+    "@vscode/markdown-it-katex": "catalog:"
   }
 }

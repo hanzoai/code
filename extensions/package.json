@@ -4,15 +4,15 @@
   "license": "MIT",
   "description": "Dependencies shared by all extensions",
   "dependencies": {
-    "typescript": "7.0.2"
+    "typescript": "catalog:"
   },
   "scripts": {
     "postinstall": "node ./postinstall.mjs"
   },
   "devDependencies": {
-    "@parcel/watcher": "^2.6.0",
-    "esbuild": "^0.28.2",
-    "vscode-grammar-updater": "^1.1.0"
+    "@parcel/watcher": "catalog:",
+    "esbuild": "catalog:",
+    "vscode-grammar-updater": "catalog:"
   },
   "overrides": {
     "node-gyp-build": "4.8.1"

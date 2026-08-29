@@ -212,7 +212,7 @@
     ]
   },
   "devDependencies": {
-    "@types/node": "26.4.0"
+    "@types/node": "catalog:"
   },
   "repository": {
     "type": "git",
