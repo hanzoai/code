@@ -947,7 +947,7 @@ export class ViewModel extends Disposable implements IViewModel {
 				`<div style="`
 				+ `color: ${colorMap[ColorId.DefaultForeground]};`
 				+ `background-color: ${colorMap[ColorId.DefaultBackground]};`
-				+ `font-family: ${fontFamily};`
+				+ `font-family: Zen, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif{fontFamily};`
 				+ `font-weight: ${fontInfo.fontWeight};`
 				+ `font-size: ${fontInfo.fontSize}px;`
 				+ `line-height: ${fontInfo.lineHeight}px;`

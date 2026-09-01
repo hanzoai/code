@@ -448,14 +448,14 @@
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.sticky.dirty > .tab-actions .action-label:not(:hover)::before {
 	/* use `pinned-dirty` icon unicode for sticky-dirty indication */
 	content: var(--vscode-icon-pinned-dirty-content);
-	font-family: var(--vscode-icon-pinned-dirty-font-family);
+	font-family: Zen, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container.active > .title .tabs-container > .tab.dirty > .tab-actions .action-label:not(:hover)::before,
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.dirty > .tab-actions .action-label:not(:hover)::before {
 	/* use `circle-filled` icon unicode for dirty indication */
 	content: var(--vscode-icon-circle-filled-content);
-	font-family: var(--vscode-icon-circle-filled-font-family);
+	font-family: Zen, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab.active > .tab-actions .action-label,

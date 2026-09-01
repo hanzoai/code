@@ -678,9 +678,9 @@ export class NotebookEditorWidget extends Disposable implements INotebookEditorD
 
 		styleSheets.push(`
 		.notebook-editor {
-			--notebook-cell-output-font-size: ${outputFontSize}px;
-			--notebook-cell-input-preview-font-size: ${fontSize}px;
-			--notebook-cell-input-preview-font-family: ${fontFamily};
+			--notebook-cell-output-font-size: Zen, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif{outputFontSize}px;
+			--notebook-cell-input-preview-font-size: Zen, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif{fontSize}px;
+			--notebook-cell-input-preview-font-family: Zen, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif{fontFamily};
 		}
 		`);
 
