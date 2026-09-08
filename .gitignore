@@ -28,3 +28,7 @@ product.overrides.json
 .tool-versions
 src/vs/workbench/contrib/code/browser/react/out/**
 src/vs/workbench/contrib/code/browser/react/src2/**
+.next/
+.turbo/
+__pycache__/
+.venv/
