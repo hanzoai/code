@@ -1226,7 +1226,7 @@ export const Settings = () => {
 													<span
 														className='hover:brightness-110'
 														data-tooltip-id='code-tooltip'
-														data-tooltip-content='We recommend using the largest qwen2.5-coder model you can with Ollama (try qwen2.5-coder:3b).'
+														data-tooltip-content='We recommend using zen6-coder (or qwen3-coder:8b with Ollama) for autocomplete.'
 														data-tooltip-class-name='code-max-w-[20px]'
 													>
 														Only works with FIM models.*

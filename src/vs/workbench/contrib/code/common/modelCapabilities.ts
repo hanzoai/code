@@ -116,29 +116,21 @@ export const defaultModelsOfProvider = {
 	lmStudio: [], // autodetected
 
 	openRouter: [ // https://openrouter.ai/models
-		// 'anthropic/claude-3.7-sonnet:thinking',
 		'anthropic/claude-opus-4',
 		'anthropic/claude-sonnet-4',
 		'qwen/qwen3-235b-a22b',
+		'qwen/qwen3-coder',
 		'anthropic/claude-3.7-sonnet',
 		'anthropic/claude-3.5-sonnet',
 		'deepseek/deepseek-r1',
 		'deepseek/deepseek-r1-zero:free',
 		'mistralai/devstral-small:free'
-		// 'openrouter/quasar-alpha',
-		// 'google/gemini-2.5-pro-preview-03-25',
-		// 'mistralai/codestral-2501',
-		// 'qwen/qwen-2.5-coder-32b-instruct',
-		// 'mistralai/mistral-small-3.1-24b-instruct:free',
-		// 'google/gemini-2.0-flash-lite-preview-02-05:free',
-		// 'google/gemini-2.0-pro-exp-02-05:free',
-		// 'google/gemini-2.0-flash-exp:free',
 	],
 	groq: [ // https://console.groq.com/docs/models
+		'qwen/qwen3-32b',
 		'qwen-qwq-32b',
 		'llama-3.3-70b-versatile',
 		'llama-3.1-8b-instant',
-		// 'qwen-2.5-coder-32b', // preview mode (experimental)
 	],
 	mistral: [ // https://docs.mistral.ai/getting-started/models/models_overview/
 		'codestral-latest',
@@ -288,7 +280,7 @@ const openSourceModelOptions_assumingOAICompat = {
 	'openhands-lm-32b': { // https://www.all-hands.dev/blog/introducing-openhands-lm-32b----a-strong-open-coding-agent-model
 		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false, // built on qwen 2.5 32B instruct
+		reasoningCapabilities: false,
 		contextWindow: 128_000, reservedOutputTokenSpace: 4_096
 	},
 
@@ -345,12 +337,54 @@ const openSourceModelOptions_assumingOAICompat = {
 		reasoningCapabilities: false,
 		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
 	},
-	// qwen
-	'qwen2.5coder': {
+	// Zen 6 & qwen3+
+	'zen6': {
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
-		contextWindow: 32_000, reservedOutputTokenSpace: 4_096,
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 200_000, reservedOutputTokenSpace: 32_768,
+	},
+	'zen6-coder': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 200_000, reservedOutputTokenSpace: 32_768,
+	},
+	'zen6-flash': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 200_000, reservedOutputTokenSpace: 32_768,
+	},
+	'zen6-max': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 256_000, reservedOutputTokenSpace: 65_536,
+	},
+	'zen6-free': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 128_000, reservedOutputTokenSpace: 16_384,
+	},
+	'zen-vl': {
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 200_000, reservedOutputTokenSpace: 32_768,
+	},
+	'zen': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 200_000, reservedOutputTokenSpace: 32_768,
+	},
+	'qwen3coder': {
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+		contextWindow: 128_000, reservedOutputTokenSpace: 16_384,
 	},
 	'qwq': {
 		supportsFIM: false, // no FIM, yes reasoning
@@ -362,7 +396,7 @@ const openSourceModelOptions_assumingOAICompat = {
 		supportsFIM: false, // replaces QwQ
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: { supportsReasoning: true, canTurnOffReasoning: true, canIOReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
-		contextWindow: 32_768, reservedOutputTokenSpace: 8_192,
+		contextWindow: 128_000, reservedOutputTokenSpace: 16_384,
 	},
 	// FIM only
 	'starcoder2': {
@@ -434,7 +468,14 @@ const extensiveModelOptionsFallback: CodeStaticProviderInfo['modelOptionsFallbac
 	if (lower.includes('llama') || lower.includes('maverick')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama4-scout')
 	if (lower.includes('llama')) return toFallback(openSourceModelOptions_assumingOAICompat, 'llama4-scout')
 
-	if (lower.includes('qwen') && lower.includes('2.5') && lower.includes('coder')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen2.5coder')
+	if (lower === 'zen6-max' || lower.endsWith('/zen6-max')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen6-max')
+	if (lower === 'zen6-coder' || lower.endsWith('/zen6-coder')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen6-coder')
+	if (lower === 'zen6-flash' || lower.endsWith('/zen6-flash')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen6-flash')
+	if (lower === 'zen6-free' || lower.endsWith('/zen6-free')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen6-free')
+	if (lower === 'zen6' || lower.endsWith('/zen6')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen6')
+	if (lower === 'zen-vl' || lower.endsWith('/zen-vl')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen-vl')
+	if (lower.startsWith('zen') || lower.endsWith('/zen')) return toFallback(openSourceModelOptions_assumingOAICompat, 'zen6')
+	if (lower.includes('qwen') && lower.includes('coder')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen3coder')
 	if (lower.includes('qwen') && lower.includes('3')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen3')
 	if (lower.includes('qwen')) return toFallback(openSourceModelOptions_assumingOAICompat, 'qwen3')
 	if (lower.includes('qwq')) { return toFallback(openSourceModelOptions_assumingOAICompat, 'qwq') }
@@ -1061,14 +1102,14 @@ const groqModelOptions = { // https://console.groq.com/docs/models, https://groq
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'qwen-2.5-coder-32b': {
+	'qwen/qwen3-32b': {
 		contextWindow: 128_000,
-		reservedOutputTokenSpace: null, // not specified?
-		cost: { input: 0.79, output: 0.79 },
+		reservedOutputTokenSpace: null,
+		cost: { input: 0.29, output: 0.59 },
 		downloadable: false,
-		supportsFIM: false, // unfortunately looks like no FIM support on groq
+		supportsFIM: false,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'qwen-qwq-32b': { // https://huggingface.co/Qwen/QwQ-32B
 		contextWindow: 128_000,
@@ -1136,32 +1177,68 @@ const awsBedrockSettings: CodeStaticProviderInfo = {
 
 // ---------------- VLLM, OLLAMA, OPENAICOMPAT (self-hosted / local) ----------------
 const ollamaModelOptions = {
-	'qwen2.5-coder:7b': {
-		contextWindow: 32_000,
+	'zen6': {
+		contextWindow: 200_000,
 		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
-		downloadable: { sizeGb: 1.9 },
+		downloadable: { sizeGb: 18 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
-	'qwen2.5-coder:3b': {
-		contextWindow: 32_000,
+	'zen6-coder': {
+		contextWindow: 200_000,
 		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
-		downloadable: { sizeGb: 1.9 },
+		downloadable: { sizeGb: 18 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
-	'qwen2.5-coder:1.5b': {
-		contextWindow: 32_000,
+	'zen6-flash': {
+		contextWindow: 200_000,
 		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
-		downloadable: { sizeGb: .986 },
+		downloadable: { sizeGb: 5.2 },
 		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'zen-vl': {
+		contextWindow: 200_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 8.5 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'qwen3-coder:30b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 18 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'qwen3-coder:8b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 5.2 },
+		supportsFIM: true,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
+	},
+	'qwen3:8b': {
+		contextWindow: 128_000,
+		reservedOutputTokenSpace: null,
+		cost: { input: 0, output: 0 },
+		downloadable: { sizeGb: 5.2 },
+		supportsFIM: false,
+		supportsSystemMessage: 'system-role',
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'llama3.1': {
 		contextWindow: 128_000,
@@ -1172,14 +1249,14 @@ const ollamaModelOptions = {
 		supportsSystemMessage: 'system-role',
 		reasoningCapabilities: false,
 	},
-	'qwen2.5-coder': {
+	'qwen3-coder': {
 		contextWindow: 128_000,
 		reservedOutputTokenSpace: null,
 		cost: { input: 0, output: 0 },
-		downloadable: { sizeGb: 4.7 },
-		supportsFIM: false,
+		downloadable: { sizeGb: 5.2 },
+		supportsFIM: true,
 		supportsSystemMessage: 'system-role',
-		reasoningCapabilities: false,
+		reasoningCapabilities: { supportsReasoning: true, canIOReasoning: true, canTurnOffReasoning: true, openSourceThinkTags: ['<think>', '</think>'] },
 	},
 	'qwq': {
 		contextWindow: 128_000,
@@ -1211,7 +1288,7 @@ const ollamaModelOptions = {
 
 } as const satisfies Record<string, CodeStaticModelInfo>
 
-export const ollamaRecommendedModels = ['qwen2.5-coder:1.5b', 'llama3.1', 'qwq', 'deepseek-r1', 'devstral:latest'] as const satisfies (keyof typeof ollamaModelOptions)[]
+export const ollamaRecommendedModels = ['zen6-coder', 'zen6-flash', 'qwen3-coder:8b', 'qwen3:8b', 'llama3.1', 'qwq', 'deepseek-r1', 'devstral:latest'] as const satisfies (keyof typeof ollamaModelOptions)[]
 
 
 const vLLMSettings: CodeStaticProviderInfo = {
@@ -1393,11 +1470,11 @@ const openRouterModelOptions_assumingOpenAICompat = {
 		downloadable: false,
 		reasoningCapabilities: false,
 	},
-	'qwen/qwen-2.5-coder-32b-instruct': {
-		...openSourceModelOptions_assumingOAICompat['qwen2.5coder'],
-		contextWindow: 33_000,
+	'qwen/qwen3-coder': {
+		...openSourceModelOptions_assumingOAICompat['qwen3coder'],
+		contextWindow: 128_000,
 		reservedOutputTokenSpace: null,
-		cost: { input: 0.07, output: 0.16 },
+		cost: { input: 0.20, output: 0.60 },
 		downloadable: false,
 	},
 	'qwen/qwq-32b': {

@@ -1,6 +1,8 @@
 {
-	"displayName": "Default Themes",
-	"description": "The default Visual Studio light and dark themes",
+	"displayName": "Hanzo Default Themes",
+	"description": "The canonical Hanzo Dark (Obsidian) and Hanzo Light (Alabaster) color themes",
+	"hanzoDarkThemeLabel": "Hanzo Dark",
+	"hanzoLightThemeLabel": "Hanzo Light",
 	"darkPlusColorThemeLabel": "Dark+",
 	"darkModernThemeLabel": "Dark Modern",
 	"lightPlusColorThemeLabel": "Light+",
@@ -9,5 +11,5 @@
 	"lightColorThemeLabel": "Light (Visual Studio)",
 	"hcColorThemeLabel": "Dark High Contrast",
 	"lightHcColorThemeLabel": "Light High Contrast",
-	"minimalIconThemeLabel": "Minimal (Visual Studio Code)"
+	"minimalIconThemeLabel": "Minimal (Hanzo Code)"
 }

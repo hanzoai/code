@@ -946,7 +946,7 @@ export const sendLLMMessageToProviderImplementation = {
 /*
 FIM info (this may be useful in the future with vLLM, but in most cases the only way to use FIM is if the provider explicitly supports it):
 
-qwen2.5-coder https://ollama.com/library/qwen2.5-coder/blobs/e94a8ecb9327
+qwen3-coder https://ollama.com/library/qwen3-coder
 <|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>
 
 codestral https://ollama.com/library/codestral/blobs/51707752a87c

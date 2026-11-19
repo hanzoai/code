@@ -27,39 +27,40 @@
 /* Renamed from void-watermark-button to void-openfolder-button */
 .void-openfolder-button {
     padding: 8px 20px;
-    background-color: #306dce;
-    color: white;
-    border: none;
-    border-radius: 4px;
+    background-color: var(--vscode-button-background, #ffffff);
+    color: var(--vscode-button-foreground, #09090b);
+    border: 1px solid var(--vscode-widget-border, #222226);
+    border-radius: 8px;
     outline: none !important;
 	box-shadow: none !important;
 	cursor: pointer;
-	transition: background-color 0.2s ease;
+	font-weight: 500;
+	transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 .void-openfolder-button:hover {
-    background-color: #2563eb;
+    background-color: var(--vscode-button-hoverBackground, #e4e4e7);
 }
 .void-openfolder-button:active {
-    background-color: #2563eb;
+    background-color: var(--vscode-button-hoverBackground, #e4e4e7);
 }
 
 /* Added for Open SSH button with slightly darker color */
 .void-openssh-button {
     padding: 8px 20px;
-    background-color: #656565; /* Slightly darker than the #5a5a5a in the TS file */
-    color: white;
-    border: none;
-    border-radius: 4px;
+    background-color: var(--vscode-button-secondaryBackground, #16161a);
+    color: var(--vscode-button-secondaryForeground, #fafafa);
+    border: 1px solid var(--vscode-widget-border, #222226);
+    border-radius: 8px;
     outline: none !important;
 	box-shadow: none !important;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 .void-openssh-button:hover {
-    background-color: #474747; /* Darker on hover */
+    background-color: var(--vscode-button-secondaryHoverBackground, #222226);
 }
 .void-openssh-button:active {
-    background-color: #474747;
+    background-color: var(--vscode-button-secondaryHoverBackground, #222226);
 }
 
 
@@ -85,7 +86,9 @@
 }
 
 .void-link {
-	color: #3b82f6;
+	color: var(--vscode-textLink-foreground, #fafafa);
+	text-decoration: underline;
+	text-underline-offset: 2px;
 	cursor: pointer;
 	transition: all 0.2s ease;
 }

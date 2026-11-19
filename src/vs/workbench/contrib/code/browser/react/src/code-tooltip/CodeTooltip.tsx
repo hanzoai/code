@@ -114,11 +114,11 @@ export const CodeTooltip = () => {
 					</div>
 					<div style={{ marginBottom: 4 }}>
 						<span style={{ opacity: 0.8 }}>For chat:{` `}</span>
-						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>gemma3</span>
+						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>zen6</span>
 					</div>
 					<div style={{ marginBottom: 4 }}>
 						<span style={{ opacity: 0.8 }}>For autocomplete:{` `}</span>
-						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>qwen2.5-coder</span>
+						<span style={{ opacity: 0.8, fontWeight: 'bold' }}>zen6-coder</span>
 					</div>
 					<div style={{ marginBottom: 0 }}>
 						<span style={{ opacity: 0.8 }}>Use the largest version of these you can!</span>
