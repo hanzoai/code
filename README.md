@@ -2,6 +2,8 @@
 
 # code
 
+[![Open in Hanzo](https://hanzo.app/badges/open-in-hanzo.svg)](https://hanzo.app/dev/open?repo=github.com/hanzoai/code&ref=main&action=open) [![Edit with Hanzo](https://hanzo.app/badges/edit-with-hanzo.svg)](https://hanzo.app/dev/open?repo=github.com/hanzoai/code&ref=main&action=edit) [![Deploy with Hanzo](https://hanzo.app/badges/deploy-with-hanzo.svg)](https://hanzo.app/dev/open?repo=github.com/hanzoai/code&ref=main&action=deploy)
+
 Code is the open-source Cursor alternative.
 
 This repo contains the full sourcecode for Code. We are currently in [open beta]() for Discord members (see the `announcements` channel), with a waitlist for our official release. If you're new, welcome!
